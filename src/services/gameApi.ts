@@ -72,8 +72,23 @@ export const gameApi = {
 
     // [팀 관리]
     team: {
-        divideRandom: (roomId: string, totalTeams: number) => 
-            api.post('/teams/random', { roomId, totalTeams }),
+        divideRandom: (roomId: string, teamCount: number) => 
+            api.post('/api/v1/teams/random', { roomId, teamCount }),
+
+        // 사다리타기 팀 배정 
+        divideLadder: (roomId: string, teamCount: number) => 
+            api.post('/api/v1/teams/ladder', { roomId, teamCount }),
+
+        // 수동 팀 선택 
+        selectTeam: (roomId: string, deviceId: string, teamName: string) => 
+            api.post('/api/v1/teams/select', { roomId, deviceId, teamName }),
+
+        // 팀 초기화 및 상태 조회 
+        resetTeams: (roomId: string) => 
+            api.post('/api/v1/teams/reset', { roomId }),
+        
+        getTeamStatus: (roomId: string) => 
+            api.get(`/api/v1/teams/status/${roomId}`),
     },
 
     // [공통 기능]

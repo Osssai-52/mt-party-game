@@ -27,6 +27,9 @@ export default function useJuruHost(
     const [teamResult, setTeamResult] = useState<Record<string, GamePlayer[]> | null>(null);
     const [currentTurnDeviceId, setCurrentTurnDeviceId] = useState<string | null>(null);
 
+    // ✨ [추가] 팀 배정 방식 선택 상태 ('RANDOM' | 'LADDER' | 'MANUAL')
+    const [assignMethod, setAssignMethod] = useState<'RANDOM' | 'LADDER' | 'MANUAL'>('RANDOM');
+
     // UI State
     const [activePenaltyText, setActivePenaltyText] = useState<string | null>(null);
     const [showDice, setShowDice] = useState(false);
@@ -47,13 +50,47 @@ export default function useJuruHost(
         } catch (e) { console.error(e); }
     };
 
-    // 2. 팀 랜덤 섞기
-    const handleDivideTeams = async () => {
+    // ============================================================
+    // 👥 [수정됨] 팀 배정 관련 로직 (3가지 모드)
+    // ============================================================
+    
+    // 2-1. [랜덤] 팀 배정
+    const handleDivideRandom = async () => {
         try {
+            // POST /api/v1/teams/random
             const res = await gameApi.team.divideRandom(roomId, teamCount);
             setTeamResult(res.teams);
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("랜덤 팀 배정 실패", e); }
     };
+
+    // 2-2. [사다리] 팀 배정
+    const handleDivideLadder = async () => {
+        try {
+            // POST /api/v1/teams/ladder
+            const res = await gameApi.team.divideLadder(roomId, teamCount);
+            setTeamResult(res.teams);
+        } catch (e) { console.error("사다리타기 실패", e); }
+    };
+
+    // 2-3. [수동] 수동 모드 시작 (팀 초기화)
+    const handleManualMode = async () => {
+        if (!confirm("현재 팀 배정을 초기화하고, 플레이어 선택 모드로 전환할까요?")) return;
+        try {
+            // POST /api/v1/teams/reset
+            await gameApi.team.resetTeams(roomId);
+            setTeamResult(null); // 프론트 상태 초기화 -> 플레이어 화면에 선택 버튼 활성화됨
+        } catch (e) { console.error("팀 초기화 실패", e); }
+    };
+
+    // 2-4. [조회] 현재 팀 상태 불러오기 (수동 선택 시 실시간 현황 확인용)
+    const fetchTeamStatus = async () => {
+        try {
+            const res = await gameApi.team.getTeamStatus(roomId);
+            setTeamResult(res.teams);
+        } catch (e) { console.error("팀 상태 조회 실패", e); }
+    };
+    // ============================================================
+
 
     // 3. 게임 시작 (실제)
     const handleStartGame = async () => {
@@ -82,9 +119,9 @@ export default function useJuruHost(
             setCurrentTurnDeviceId(data.currentDeviceId);
         };
 
-        // 🎲 주사위 굴림 & 이동 (핵심 로직)
+        // 🎲 주사위 굴림 & 이동
         const onDiceRolled = (e: MessageEvent) => {
-            const data = JSON.parse(e.data); // { value: 5, deviceId: "..." }
+            const data = JSON.parse(e.data); 
             
             setShowDice(true);
             setIsRolling(true);
@@ -99,10 +136,8 @@ export default function useJuruHost(
                         const roller = prevPlayers.find(p => p.deviceId === data.deviceId);
                         if (!roller) return prevPlayers;
 
-                        // ✨ 팀원 찾기 (같이 이동하기 위해)
                         let idsToMove: string[] = [data.deviceId];
                         
-                        // teamResult 상태를 참조하여 같은 팀원 ID 찾기
                         if (teamResult) {
                             for (const members of Object.values(teamResult)) {
                                 if (members.some(m => m.deviceId === data.deviceId)) {
@@ -115,23 +150,18 @@ export default function useJuruHost(
                         let nextPos = roller.currentPosition + data.value;
                         if (nextPos >= 28) nextPos -= 28;
 
-                        // 벌칙 텍스트 설정
                         let penaltyText = "";
                         if (nextPos === 0) penaltyText = "출발점 (휴식)";
                         else if (nextPos === 7) penaltyText = "🍺 의리주 채우기!";
-                        else if (nextPos === 21) penaltyText = "🤮 의리주 원샷!";
+                        else if (nextPos === 21) penaltyText = "🤮 의리주 마시기!";
                         else {
-                            if (finalPenalties.length > 0) {
-                                penaltyText = finalPenalties[nextPos % finalPenalties.length].text;
-                            } else {
-                                penaltyText = "벌칙 내용 없음";
-                            }
+                            if (finalPenalties.length > 0) penaltyText = finalPenalties[nextPos % finalPenalties.length].text;
+                            else penaltyText = `임시 벌칙 ${nextPos}`;
                         }
 
                         setActivePenaltyText(penaltyText);
                         setTimeout(() => setActivePenaltyText(null), 3000);
 
-                        // ✨ 팀원 전체 이동
                         return prevPlayers.map(p => {
                             if (idsToMove.includes(p.deviceId)) {
                                 return { ...p, currentPosition: nextPos };
@@ -147,10 +177,18 @@ export default function useJuruHost(
         eventSource.addEventListener('MARBLE_TURN_CHANGE', onTurnChange);
         eventSource.addEventListener('MARBLE_DICE_ROLLED', onDiceRolled);
 
+        // 🌟 [추가] 실시간 팀 상태 변경 감지
+        const onTeamUpdate = (e: MessageEvent) => {
+            const data = JSON.parse(e.data);
+            if (data.teams) setTeamResult(data.teams);
+        };
+        eventSource.addEventListener('TEAM_UPDATE', onTeamUpdate);
+
         return () => {
             eventSource.removeEventListener('MARBLE_PENALTY_SUBMITTED', onPenaltySubmitted);
             eventSource.removeEventListener('MARBLE_TURN_CHANGE', onTurnChange);
             eventSource.removeEventListener('MARBLE_DICE_ROLLED', onDiceRolled);
+            eventSource.removeEventListener('TEAM_UPDATE', onTeamUpdate);
         };
     }, [eventSource, finalPenalties, teamResult]); 
 
@@ -159,30 +197,67 @@ export default function useJuruHost(
     // 🛠️ [TEST MODE] 개발자용 테스트 함수들
     // ============================================================
     const handleTestStart = () => {
-        // ✨ 팀별로 색상 통일! (1팀: 빨강, 2팀: 파랑)
-        const dummyPlayers: GamePlayer[] = [
-            { id: 0, nickname: '철수', color: '#FF6B6B', currentPosition: 0, profileImage: null, deviceId: 'd1', submittedCount: 2 },
-            { id: 1, nickname: '영희', color: '#FF6B6B', currentPosition: 0, profileImage: null, deviceId: 'd2', submittedCount: 2 },
-            { id: 2, nickname: '민수', color: '#4ECDC4', currentPosition: 0, profileImage: null, deviceId: 'd3', submittedCount: 2 },
-            { id: 3, nickname: '지수', color: '#4ECDC4', currentPosition: 0, profileImage: null, deviceId: 'd4', submittedCount: 2 },
-        ];
+        // 가짜 플레이어 8명 생성
+        const dummyPlayers = Array.from({ length: 8 }).map((_, i) => ({
+            id: i,
+            nickname: `테스터${i + 1}`,
+            color: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C', '#FF9F43'][i % 5],
+            currentPosition: 0,
+            profileImage: null,
+            deviceId: `test_device_${i}`,
+            submittedCount: 2
+        }));
         setPlayers(dummyPlayers);
 
+        // 가짜 벌칙 생성
         const dummyPenalties = Array(30).fill(null).map((_, i) => ({ text: `테스트 벌칙 ${i+1}: 의리주 마시기` }));
         setFinalPenalties(dummyPenalties);
+        
+        console.log("✅ [TEST] 가짜 플레이어 & 벌칙 생성 완료");
+    };
 
-        setTeamResult({
-            '1팀': [dummyPlayers[0], dummyPlayers[1]],
-            '2팀': [dummyPlayers[2], dummyPlayers[3]],
-        });
+    // 🌟 [추가] 가짜 팀 배정 시뮬레이션
+    const handleTestTeamBuilding = (method: 'RANDOM' | 'LADDER' | 'MANUAL') => {
+        if (players.length === 0) {
+            alert("먼저 '1. 가짜 참가자 생성' 버튼을 눌러주세요!");
+            return;
+        }
 
-        setCurrentTurnDeviceId('d1'); 
+        console.log(`✅ [TEST] 팀 배정 시뮬레이션 시작: ${method}`);
+
+        if (method === 'MANUAL') {
+            // 수동: 팀을 싹 비워서 초기화 상태로 만듦
+            setTeamResult(null);
+            console.log("-> 팀 초기화 완료 (수동 모드)");
+        } else {
+            // 랜덤/사다리: 그냥 무작위로 섞어서 팀 갯수만큼 나눔
+            const shuffled = [...players].sort(() => Math.random() - 0.5);
+            const teams: Record<string, GamePlayer[]> = {};
+            const teamNames = ['A팀', 'B팀', 'C팀', 'D팀', 'E팀'];
+
+            // 팀 초기화
+            for (let i = 0; i < teamCount; i++) {
+                // 팀 개수가 너무 많으면 에러나니까 안전장치
+                const name = teamNames[i] || `${String.fromCharCode(65+i)}팀`;
+                teams[name] = [];
+            }
+
+            // 플레이어 분배 (index % teamCount)
+            shuffled.forEach((p, idx) => {
+                const teamIndex = idx % teamCount;
+                const teamName = Object.keys(teams)[teamIndex];
+                teams[teamName].push(p);
+            });
+
+            setTeamResult(teams);
+            console.log("-> 가짜 팀 배정 완료:", teams);
+        }
     };
 
     const handleTestDice = () => {
         if (isRolling) return;
         const testValue = Math.floor(Math.random() * 6) + 1; 
-        const targetDeviceId = currentTurnDeviceId || 'd1';
+        const targetDeviceId = currentTurnDeviceId || 'test_device_0'; // 테스트용 ID로 수정
         const mockEventData = { value: testValue, deviceId: targetDeviceId };
         
         setShowDice(true);
@@ -214,7 +289,7 @@ export default function useJuruHost(
                     let penaltyText = "";
                     if (nextPos === 0) penaltyText = "출발점 (휴식)";
                     else if (nextPos === 7) penaltyText = "🍺 의리주 채우기!";
-                    else if (nextPos === 21) penaltyText = "🤮 의리주 원샷!";
+                    else if (nextPos === 21) penaltyText = "🤮 의리주 마시기!";
                     else {
                         if (finalPenalties.length > 0) penaltyText = finalPenalties[nextPos % finalPenalties.length].text;
                         else penaltyText = `임시 벌칙 ${nextPos}`;
@@ -223,26 +298,22 @@ export default function useJuruHost(
                     setActivePenaltyText(penaltyText);
                     setTimeout(() => setActivePenaltyText(null), 3000);
 
-                    // ✨ 같은 팀원이면 모두 다 같이 이동!
                     return prevPlayers.map(p => {
                         if (teamMemberIds.includes(p.deviceId)) return { ...p, currentPosition: nextPos };
                         return p;
                     });
                 });
 
-                // 턴 넘기기 (철수 -> 민수 -> 영희 -> 지수 -> 철수)
-                let nextId = 'd1';
-                if (targetDeviceId === 'd1') nextId = 'd3';       
-                else if (targetDeviceId === 'd3') nextId = 'd2';  
-                else if (targetDeviceId === 'd2') nextId = 'd4';  
-                else if (targetDeviceId === 'd4') nextId = 'd1';  
-                setCurrentTurnDeviceId(nextId);
+                // 턴 넘기기 시뮬레이션
+                const currentIdx = players.findIndex(p => p.deviceId === targetDeviceId);
+                const nextIdx = (currentIdx + 1) % players.length;
+                setCurrentTurnDeviceId(players[nextIdx]?.deviceId || 'test_device_0');
 
             }, 2000);
         }, 1000);
     };
 
-    // ✨ [핵심] 보드판에 넘겨줄 '대표 말' 계산 (팀당 1개)
+    // ✨ [핵심] 보드판에 넘겨줄 '대표 말' 계산
     const boardPieces = teamResult 
         ? Object.entries(teamResult).map(([teamName, members]) => {
             const representative = players.find(p => p.deviceId === members[0].deviceId);
@@ -264,17 +335,28 @@ export default function useJuruHost(
         showDice,
         diceValue,
         isRolling,
-        boardPieces, // 계산된 대표 말 리스트
+        boardPieces,
+        
+        // ✨ [추가] 배정 방식 상태 및 설정 함수
+        assignMethod,
+        setAssignMethod,
 
         // Handlers
         handleFinishVote,
-        handleDivideTeams,
+        
+        // 🌟 수정된 3가지 배정 방식 핸들러
+        handleDivideRandom, 
+        handleDivideLadder, 
+        handleManualMode,   
+        fetchTeamStatus,    
+
         handleStartGame,
 
         // Test Handlers
         testHandlers: {
             handleTestStart,
-            handleTestDice
+            handleTestDice,
+            handleTestTeamBuilding 
         }
     };
 }

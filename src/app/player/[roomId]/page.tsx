@@ -2,11 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import gameApi from '../../../services/gameApi';
+import gameApi from '../../../services/gameApi'; 
 import MafiaController from '../../../components/MafiaController';
 import { MafiaRole, MafiaPhase, MafiaPlayer } from '../../../types/mafia';
 
-// ✨ [수정] MAFIA_GAME 페이즈 추가
 type GamePhase = 'LOBBY' | 'SUBMIT' | 'VOTE' | 'TEAM' | 'GAME' | 'MAFIA_GAME';
 
 const getDeviceId = () => {
@@ -38,7 +37,7 @@ export default function PlayerRoomPage() {
     const [isRolling, setIsRolling] = useState(false);
     const [currentTurnDeviceId, setCurrentTurnDeviceId] = useState<string | null>(null);
 
-    // --- [마피아 State] ✨ 추가됨 ---
+    // 마피아 State
     const [mafiaRole, setMafiaRole] = useState<MafiaRole>('CIVILIAN');
     const [mafiaPhase, setMafiaPhase] = useState<MafiaPhase>('NIGHT');
     const [isAlive, setIsAlive] = useState(true);
@@ -73,12 +72,12 @@ export default function PlayerRoomPage() {
 
         // [주루마블] 턴 변경 알림
         eventSource.addEventListener('MARBLE_TURN_CHANGE', (e) => {
-            const data = JSON.parse(e.data); // { currentDeviceId: "..." }
+            const data = JSON.parse(e.data); 
             setCurrentTurnDeviceId(data.currentDeviceId);
             setIsRolling(false); // 턴 바뀌면 버튼 다시 활성화 준비
         });
 
-        // 🕵️‍♀️ [마피아] 게임 시작 및 역할 할당 알림 ✨ 추가됨
+        // 🕵️‍♀️ [마피아] 게임 시작 및 역할 할당 알림
         eventSource.addEventListener('MAFIA_ROLE_ASSIGNED', async () => {
             try {
                 // 내 역할 조회 API 호출
@@ -94,13 +93,13 @@ export default function PlayerRoomPage() {
             }
         });
 
-        // 🕵️‍♀️ [마피아] 페이즈 동기화 ✨ 추가됨
+        // 🕵️‍♀️ [마피아] 페이즈 동기화
         eventSource.addEventListener('MAFIA_NIGHT', () => setMafiaPhase('NIGHT'));
         eventSource.addEventListener('MAFIA_DAY_ANNOUNCEMENT', () => setMafiaPhase('DAY_ANNOUNCEMENT'));
         eventSource.addEventListener('MAFIA_VOTE_START', () => setMafiaPhase('VOTE'));
         eventSource.addEventListener('MAFIA_FINAL_VOTE_START', () => setMafiaPhase('FINAL_VOTE'));
         
-        // 🕵️‍♀️ [마피아] 생존자 목록 갱신 (누군가 죽었을 때) ✨ 추가됨
+        // 🕵️‍♀️ [마피아] 생존자 목록 갱신
         eventSource.addEventListener('MAFIA_ALIVE_UPDATE', (e) => {
              const data = JSON.parse(e.data); // { players: [...] }
              setAlivePlayers(data.players);
@@ -183,7 +182,35 @@ export default function PlayerRoomPage() {
         </div>
     );
 
-    if (phase === 'TEAM') return <div className="min-h-screen bg-black text-white p-6 flex justify-center items-center text-2xl font-bold animate-pulse">팀 편성 중...</div>;
+    // 👇 [여기가 변경된 부분] TEAM 페이즈 로직 교체 완료!
+    if (phase === 'TEAM') {
+        const teamNames = ['A', 'B', 'C', 'D'].slice(0, 2); // 예시로 2개 팀 (실제로는 서버 설정에 따라 달라질 수 있음)
+
+        const handleSelectTeam = async (teamName: string) => {
+            try {
+                // ⚠️ 주의: gameApi.ts에 team.selectTeam 함수가 있어야 에러가 안 나!
+                await gameApi.team.selectTeam(roomId, deviceId, teamName);
+                // 선택 성공 후 별도 처리가 필요하면 여기에 작성 (예: '선택 완료!' 알림)
+            } catch (e) { alert("팀 선택 실패!"); }
+        };
+
+        return (
+            <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
+                <h1 className="text-3xl font-bold mb-8">원하는 팀을 선택하세요! 👥</h1>
+                <div className="grid grid-cols-2 gap-4 w-full">
+                    {teamNames.map(name => (
+                        <button 
+                            key={name}
+                            onClick={() => handleSelectTeam(name)}
+                            className="py-10 bg-gray-800 border-2 border-purple-500 rounded-2xl text-2xl font-black hover:bg-purple-600 transition"
+                        >
+                            {name} 팀
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     if (phase === 'GAME') {
         const isMyTurn = currentTurnDeviceId === deviceId;
@@ -212,7 +239,7 @@ export default function PlayerRoomPage() {
         );
     }
 
-    // 🕵️‍♀️ [마피아 게임] 화면 렌더링 ✨ 추가됨
+    // 🕵️‍♀️ [마피아 게임] 화면 렌더링
     if (phase === 'MAFIA_GAME') {
         return (
             <MafiaController 

@@ -7,12 +7,15 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
     const [timer, setTimer] = useState(0);
     const [systemMessage, setSystemMessage] = useState("게임 시작 대기 중...");
     const [mafiaPlayers, setMafiaPlayers] = useState<MafiaPlayer[]>([]);
+    
+    // 실시간 투표 현황 & 승리자 정보
+    const [voteStatus, setVoteStatus] = useState<Record<string, number>>({}); 
+    const [winner, setWinner] = useState<'MAFIA' | 'CITIZEN' | null>(null);
 
-    // 1. 게임 시작 (실제)
+    // 실제 게임 시작
     const startGame = async () => {
         try {
             await gameApi.mafia.init(roomId);
-            // 초기화: 로비 인원 그대로 가져옴
             setMafiaPlayers(players.map(p => ({ 
                 deviceId: p.deviceId, 
                 nickname: p.nickname, 
@@ -21,10 +24,12 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
             })));
             setPhase('NIGHT');
             setSystemMessage("밤이 되었습니다. 마피아는 고개를 들어주세요.");
+            setWinner(null);
+            setVoteStatus({});
         } catch (e) { console.error(e); }
     };
 
-    // 2. SSE 이벤트 리스너
+    // SSE 이벤트 리스너
     useEffect(() => {
         if (!eventSource) return;
 
@@ -36,6 +41,7 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
         eventSource.addEventListener('MAFIA_NIGHT', () => {
             setPhase('NIGHT');
             setSystemMessage("밤이 되었습니다. 마피아는 고개를 들어주세요.");
+            setVoteStatus({});
         });
 
         eventSource.addEventListener('MAFIA_DAY_ANNOUNCEMENT', (e: any) => {
@@ -54,6 +60,12 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
         eventSource.addEventListener('MAFIA_VOTE_START', () => {
             setPhase('VOTE');
             setSystemMessage("투표를 시작합니다. 의심가는 사람을 선택하세요.");
+            setVoteStatus({});
+        });
+
+        eventSource.addEventListener('MAFIA_VOTE_UPDATE', (e: any) => {
+            const data = JSON.parse(e.data); 
+            setVoteStatus(data.votes); 
         });
 
         eventSource.addEventListener('MAFIA_FINAL_VOTE_START', () => {
@@ -61,23 +73,36 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
             setSystemMessage("최후의 변론이 끝났습니다. 찬반 투표를 진행합니다.");
         });
 
+        eventSource.addEventListener('MAFIA_GAME_END', (e: any) => {
+            const data = JSON.parse(e.data); 
+            setPhase('END');
+            setWinner(data.winner);
+            setSystemMessage(data.winner === 'CITIZEN' ? "시민들이 승리했습니다! 🎉" : "마피아의 승리입니다! 😈");
+        });
+
     }, [eventSource]);
 
+
     // ============================================================
-    // 🛠️ [마피아 테스트 모드]
+    // 🛠️ [TEST MODE] 마피아 개발자 테스트 함수들
     // ============================================================
     const handleTestStart = () => {
-        // 더미 플레이어 생성
+        console.log("🕵️ 마피아 테스트 모드 시작!");
+        
+        // 1. 강제 더미 플레이어 생성 (로비에 아무도 없을 때를 대비)
         const dummies: MafiaPlayer[] = [
-            { deviceId: 'd1', nickname: '철수', isAlive: true },
-            { deviceId: 'd2', nickname: '영희', isAlive: true },
-            { deviceId: 'd3', nickname: '민수', isAlive: true },
-            { deviceId: 'd4', nickname: '지수', isAlive: true },
-            { deviceId: 'd5', nickname: '길동', isAlive: true },
+            { deviceId: 'd1', nickname: '철수 (마피아)', isAlive: true, role: 'MAFIA' }, // 역할은 UI 표시용 아님 (보안상)
+            { deviceId: 'd2', nickname: '영희 (의사)', isAlive: true, role: 'DOCTOR' },
+            { deviceId: 'd3', nickname: '민수 (경찰)', isAlive: true, role: 'POLICE' },
+            { deviceId: 'd4', nickname: '지수 (시민)', isAlive: true, role: 'CIVILIAN' },
+            { deviceId: 'd5', nickname: '길동 (시민)', isAlive: true, role: 'CIVILIAN' },
         ];
+        
         setMafiaPlayers(dummies);
         setPhase('NIGHT');
-        setSystemMessage("[TEST] 게임이 시작되었습니다 (밤)");
+        setSystemMessage("[TEST] 밤이 되었습니다. (테스트 모드)");
+        setWinner(null);
+        setVoteStatus({});
     };
 
     const handleTestNextPhase = () => {
@@ -87,7 +112,9 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
             setSystemMessage("[TEST] 낮이 되었습니다.");
         } else if (phase === 'DAY_ANNOUNCEMENT') {
             setPhase('VOTE');
-            setSystemMessage("[TEST] 투표 시간입니다.");
+            setSystemMessage("[TEST] 투표 시간입니다. (클릭해서 투표 수 테스트)");
+            // 테스트용 투표 데이터 주입
+            setVoteStatus({ '철수 (마피아)': 2, '지수 (시민)': 1 });
         } else if (phase === 'VOTE') {
             setPhase('FINAL_VOTE');
             setSystemMessage("[TEST] 최종 찬반 투표입니다.");
@@ -98,11 +125,12 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
     };
 
     const handleTestKillRandom = () => {
-        // 살아있는 사람 중 한 명 랜덤 처형
         const survivors = mafiaPlayers.filter(p => p.isAlive);
         if (survivors.length === 0) return;
         
         const victim = survivors[Math.floor(Math.random() * survivors.length)];
+        
+        // 죽은 처리
         setMafiaPlayers(prev => prev.map(p => 
             p.deviceId === victim.deviceId ? { ...p, isAlive: false } : p
         ));
@@ -115,11 +143,9 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
         timer,
         systemMessage,
         mafiaPlayers,
-        startGame, // 실제 게임 시작
-        testHandlers: { // 테스트용 함수들
-            handleTestStart,
-            handleTestNextPhase,
-            handleTestKillRandom
-        }
+        voteStatus,
+        winner, 
+        startGame, 
+        testHandlers: { handleTestStart, handleTestNextPhase, handleTestKillRandom }
     };
 }
