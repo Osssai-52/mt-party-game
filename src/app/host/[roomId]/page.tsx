@@ -320,7 +320,6 @@ export default function LobbyPage() {
                                         </button>
                                     ))}
                                 </div>
-                                {/* ... 팀 컨트롤러 (방식별 버튼) ... */}
                                 <div className="bg-gray-900/80 p-8 rounded-3xl border border-gray-700 flex flex-col items-center gap-6 w-full max-w-2xl">
                                     <div className="flex items-center gap-6">
                                         <span className="text-gray-400 font-bold">총 팀 개수</span>
@@ -415,6 +414,8 @@ export default function LobbyPage() {
                         systemMessage={mafia.systemMessage}
                         voteStatus={mafia.voteStatus}
                         winner={mafia.winner}
+                        // 🌟 [수정됨] 찬반 투표 상태 연결
+                        finalVoteStatus={mafia.finalVoteStatus}
                     />
                 )}
 

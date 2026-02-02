@@ -96,15 +96,24 @@ export default function PlayerRoomPage() {
                 setMafiaPhase('NIGHT');
             } catch (e) { console.error(e); }
         });
+
+        // 🌟 백엔드 명세에 맞춰 모든 페이즈 이벤트 수신!
         eventSource.addEventListener('MAFIA_NIGHT', () => setMafiaPhase('NIGHT'));
         eventSource.addEventListener('MAFIA_DAY_ANNOUNCEMENT', () => setMafiaPhase('DAY_ANNOUNCEMENT'));
         eventSource.addEventListener('MAFIA_VOTE_START', () => setMafiaPhase('VOTE'));
+        
+        // ✨ 추가된 이벤트들
+        eventSource.addEventListener('MAFIA_VOTE_RESULT', () => setMafiaPhase('VOTE_RESULT'));
+        eventSource.addEventListener('MAFIA_FINAL_DEFENSE', () => setMafiaPhase('FINAL_DEFENSE'));
         eventSource.addEventListener('MAFIA_FINAL_VOTE_START', () => setMafiaPhase('FINAL_VOTE'));
+        eventSource.addEventListener('MAFIA_FINAL_VOTE_RESULT', () => setMafiaPhase('FINAL_VOTE_RESULT'));
+        eventSource.addEventListener('MAFIA_GAME_END', () => setMafiaPhase('END'));
+
         eventSource.addEventListener('MAFIA_ALIVE_UPDATE', (e) => {
-             const data = JSON.parse(e.data);
-             setAlivePlayers(data.players);
-             const me = data.players.find((p: any) => p.deviceId === deviceId);
-             if (me && !me.isAlive) setIsAlive(false);
+            const data = JSON.parse(e.data);
+            setAlivePlayers(data.players);
+            const me = data.players.find((p: any) => p.deviceId === deviceId);
+            if (me && !me.isAlive) setIsAlive(false);
         });
 
         // ---------------- [진실게임 이벤트] ✨ ----------------
