@@ -18,7 +18,7 @@ export default function TruthController({ roomId, deviceId, phase }: TruthContro
     const handleSubmit = async () => {
         if (!questionInput.trim()) return;
         try {
-            await gameApi.truth.submitQuestion(roomId, questionInput);
+            await gameApi.truth.submitQuestion(roomId, deviceId, questionInput);
             setIsSubmitted(true);
             setQuestionInput("");
         } catch (e) { alert("제출 실패! 잠시 후 다시 시도해주세요."); }

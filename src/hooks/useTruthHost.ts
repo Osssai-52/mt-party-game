@@ -36,7 +36,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
 
     const handleConfirmQuestion = async () => {
         if (!currentQuestion) return;
-        try { await gameApi.truth.confirmQuestion(roomId, currentQuestion.id); } catch (e) { console.error(e); }
+        try { await gameApi.truth.confirmQuestion(roomId); } catch (e) { console.error(e); }
     };
 
     const handleFinishAnswering = async () => {
