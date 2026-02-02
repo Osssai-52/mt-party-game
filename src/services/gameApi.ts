@@ -133,6 +133,30 @@ export const gameApi = {
         // 상태 조회
         getAlivePlayers: (roomId: string) => 
             api.get(`/games/mafia/alive/${roomId}`),
+    },
+
+    truth: {
+        init: (roomId: string) => api.post('/games/truth/init', { roomId }),
+        
+        // 답변자 관련
+        selectAnswererRandom: (roomId: string) => api.post('/games/truth/answerer/random', { roomId }),
+        selectAnswerer: (roomId: string, deviceId: string) => api.post('/games/truth/answerer/select', { roomId, deviceId }),
+        getAnswerer: (roomId: string) => api.get(`/games/truth/answerer/${roomId}`),
+
+        // 질문 관련
+        submitQuestion: (roomId: string, content: string) => api.post('/games/truth/question/submit', { roomId, content }),
+        getQuestionCount: (roomId: string) => api.get(`/games/truth/question/count/${roomId}`),
+        finishQuestionSubmit: (roomId: string) => api.post('/games/truth/question/finish', { roomId }),
+        selectQuestion: (roomId: string) => api.post('/games/truth/question/select', { roomId }),
+        confirmQuestion: (roomId: string, questionId: number) => api.post('/games/truth/question/confirm', { roomId, questionId }),
+
+        // 얼굴 데이터 & 결과
+        sendFaceData: (roomId: string, deviceId: string, data: any) => api.post('/games/truth/face-tracking', { roomId, deviceId, data }),
+        finishAnswering: (roomId: string) => api.post('/games/truth/finish-answering', { roomId }),
+        
+        // 진행
+        nextRound: (roomId: string) => api.post('/games/truth/next-round', { roomId }),
+        end: (roomId: string) => api.post('/games/truth/end', { roomId }),
     }
 };
 

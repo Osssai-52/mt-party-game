@@ -2,11 +2,17 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import gameApi from '../../../services/gameApi'; 
+import gameApi from '../../../services/gameApi';
 import MafiaController from '../../../components/MafiaController';
+import TruthController from '../../../components/TruthController'; // ✨ 추가됨
 import { MafiaRole, MafiaPhase, MafiaPlayer } from '../../../types/mafia';
+import { TruthPhase } from '../../../types/truth'; // ✨ 추가됨 (없으면 문자열로 대체 가능)
 
-type GamePhase = 'LOBBY' | 'SUBMIT' | 'VOTE' | 'TEAM' | 'GAME' | 'MAFIA_GAME';
+// 게임 페이즈 통합 타입
+type GamePhase = 
+    | 'LOBBY' | 'SUBMIT' | 'VOTE' | 'TEAM' | 'GAME' // 주루마블
+    | 'MAFIA_GAME' // 마피아
+    | 'TRUTH_GAME'; // 진실게임 ✨
 
 const getDeviceId = () => {
     if (typeof window === 'undefined') return '';
@@ -37,11 +43,14 @@ export default function PlayerRoomPage() {
     const [isRolling, setIsRolling] = useState(false);
     const [currentTurnDeviceId, setCurrentTurnDeviceId] = useState<string | null>(null);
 
-    // 마피아 State
+    // --- [마피아 State] ---
     const [mafiaRole, setMafiaRole] = useState<MafiaRole>('CIVILIAN');
     const [mafiaPhase, setMafiaPhase] = useState<MafiaPhase>('NIGHT');
     const [isAlive, setIsAlive] = useState(true);
     const [alivePlayers, setAlivePlayers] = useState<MafiaPlayer[]>([]);
+
+    // --- [진실게임 State] ✨ ---
+    const [truthPhase, setTruthPhase] = useState<TruthPhase>('SELECT_ANSWERER');
 
     // SSE 연결을 위한 Ref
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -63,50 +72,46 @@ export default function PlayerRoomPage() {
         const eventSource = new EventSource(sseUrl);
         eventSourceRef.current = eventSource;
 
-        // [공통] 페이즈 변경
+        // [공통] 페이즈 변경 (게임 종류 전환 포함)
         eventSource.addEventListener('MARBLE_PHASE_CHANGE', (e) => {
             const data = JSON.parse(e.data);
-            setPhase(data.phase);
+            setPhase(data.phase); // GAME, MAFIA_GAME, TRUTH_GAME 등
             if (data.phase === 'VOTE') fetchVoteList();
         });
 
-        // [주루마블] 턴 변경 알림
+        // ---------------- [주루마블 이벤트] ----------------
         eventSource.addEventListener('MARBLE_TURN_CHANGE', (e) => {
-            const data = JSON.parse(e.data); 
+            const data = JSON.parse(e.data);
             setCurrentTurnDeviceId(data.currentDeviceId);
-            setIsRolling(false); // 턴 바뀌면 버튼 다시 활성화 준비
+            setIsRolling(false);
         });
 
-        // 🕵️‍♀️ [마피아] 게임 시작 및 역할 할당 알림
+        // ---------------- [마피아 이벤트] ----------------
         eventSource.addEventListener('MAFIA_ROLE_ASSIGNED', async () => {
             try {
-                // 내 역할 조회 API 호출
                 const res = await gameApi.mafia.getRole(roomId, deviceId);
                 setMafiaRole(res.data.role);
-                // 마피아 게임 화면으로 전환
                 setPhase('MAFIA_GAME'); 
-                // 초기 상태 리셋
                 setIsAlive(true);
                 setMafiaPhase('NIGHT');
-            } catch (e) {
-                console.error("역할 조회 실패", e);
-            }
+            } catch (e) { console.error(e); }
         });
-
-        // 🕵️‍♀️ [마피아] 페이즈 동기화
         eventSource.addEventListener('MAFIA_NIGHT', () => setMafiaPhase('NIGHT'));
         eventSource.addEventListener('MAFIA_DAY_ANNOUNCEMENT', () => setMafiaPhase('DAY_ANNOUNCEMENT'));
         eventSource.addEventListener('MAFIA_VOTE_START', () => setMafiaPhase('VOTE'));
         eventSource.addEventListener('MAFIA_FINAL_VOTE_START', () => setMafiaPhase('FINAL_VOTE'));
-        
-        // 🕵️‍♀️ [마피아] 생존자 목록 갱신
         eventSource.addEventListener('MAFIA_ALIVE_UPDATE', (e) => {
-             const data = JSON.parse(e.data); // { players: [...] }
+             const data = JSON.parse(e.data);
              setAlivePlayers(data.players);
-             
-             // 내가 죽었는지 확인
              const me = data.players.find((p: any) => p.deviceId === deviceId);
              if (me && !me.isAlive) setIsAlive(false);
+        });
+
+        // ---------------- [진실게임 이벤트] ✨ ----------------
+        eventSource.addEventListener('TRUTH_PHASE_CHANGE', (e) => {
+            const data = JSON.parse(e.data);
+            setTruthPhase(data.phase); // SUBMIT_QUESTIONS, ANSWERING 등
+            setPhase('TRUTH_GAME'); // 메인 페이즈 전환
         });
 
         return () => {
@@ -156,9 +161,11 @@ export default function PlayerRoomPage() {
         }
     };
 
-    // --- UI 렌더링 ---
+    // ================= UI 렌더링 =================
+
     if (phase === 'LOBBY') return <div className="min-h-screen bg-black text-white p-6 flex justify-center items-center">대기 중...</div>;
     
+    // --- [주루마블] ---
     if (phase === 'SUBMIT') return (
         <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center">
             <h1 className="text-2xl font-bold mb-4">벌칙 제출</h1>
@@ -182,28 +189,17 @@ export default function PlayerRoomPage() {
         </div>
     );
 
-    // 👇 [여기가 변경된 부분] TEAM 페이즈 로직 교체 완료!
     if (phase === 'TEAM') {
-        const teamNames = ['A', 'B', 'C', 'D'].slice(0, 2); // 예시로 2개 팀 (실제로는 서버 설정에 따라 달라질 수 있음)
-
+        const teamNames = ['A', 'B', 'C', 'D'].slice(0, 2); 
         const handleSelectTeam = async (teamName: string) => {
-            try {
-                // ⚠️ 주의: gameApi.ts에 team.selectTeam 함수가 있어야 에러가 안 나!
-                await gameApi.team.selectTeam(roomId, deviceId, teamName);
-                // 선택 성공 후 별도 처리가 필요하면 여기에 작성 (예: '선택 완료!' 알림)
-            } catch (e) { alert("팀 선택 실패!"); }
+            try { await gameApi.team.selectTeam(roomId, deviceId, teamName); } catch (e) { alert("팀 선택 실패!"); }
         };
-
         return (
             <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
                 <h1 className="text-3xl font-bold mb-8">원하는 팀을 선택하세요! 👥</h1>
                 <div className="grid grid-cols-2 gap-4 w-full">
                     {teamNames.map(name => (
-                        <button 
-                            key={name}
-                            onClick={() => handleSelectTeam(name)}
-                            className="py-10 bg-gray-800 border-2 border-purple-500 rounded-2xl text-2xl font-black hover:bg-purple-600 transition"
-                        >
+                        <button key={name} onClick={() => handleSelectTeam(name)} className="py-10 bg-gray-800 border-2 border-purple-500 rounded-2xl text-2xl font-black hover:bg-purple-600 transition">
                             {name} 팀
                         </button>
                     ))}
@@ -219,11 +215,7 @@ export default function PlayerRoomPage() {
                 {isMyTurn ? (
                     <>
                         <h1 className="text-4xl font-black text-yellow-400 mb-8 animate-bounce">YOUR TURN! 🫵</h1>
-                        <button
-                            onClick={handleRollDice}
-                            disabled={isRolling}
-                            className={`w-64 h-64 rounded-full flex flex-col items-center justify-center gap-4 border-8 ${isRolling ? 'bg-gray-800 border-gray-600' : 'bg-red-600 border-red-400 shadow-[0_0_50px_rgba(220,38,38,0.5)]'}`}
-                        >
+                        <button onClick={handleRollDice} disabled={isRolling} className={`w-64 h-64 rounded-full flex flex-col items-center justify-center gap-4 border-8 ${isRolling ? 'bg-gray-800 border-gray-600' : 'bg-red-600 border-red-400 shadow-[0_0_50px_rgba(220,38,38,0.5)]'}`}>
                             <span className="text-8xl">{isRolling ? '💨' : '🎲'}</span>
                             <span className="text-2xl font-black">{isRolling ? 'Rolling...' : 'ROLL'}</span>
                         </button>
@@ -239,7 +231,7 @@ export default function PlayerRoomPage() {
         );
     }
 
-    // 🕵️‍♀️ [마피아 게임] 화면 렌더링
+    // --- [마피아 게임] ---
     if (phase === 'MAFIA_GAME') {
         return (
             <MafiaController 
@@ -250,6 +242,19 @@ export default function PlayerRoomPage() {
                 isAlive={isAlive}
                 alivePlayers={alivePlayers}
             />
+        );
+    }
+
+    // --- [진실 게임] ✨ ---
+    if (phase === 'TRUTH_GAME') {
+        return (
+            <div className="min-h-screen bg-black text-white">
+                <TruthController 
+                    roomId={roomId}
+                    deviceId={deviceId}
+                    phase={truthPhase}
+                />
+            </div>
         );
     }
 
