@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-foreground-rgb: 255, 255, 255;
+  --color-background-start-rgb: 0, 0, 0;
+  --color-background-end-rgb: 0, 0, 0;
+
+  --font-hand: 'Gaegu', cursive;
+
+  --image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
+  --image-gradient-conic: conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops));
+}
+
+/* 기본 바디 스타일 */
+body {
+  color: #ffffff;
+  background: #000000;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 🖌️ 커스텀 스타일 시작 */
+
+/* 삐뚤빼뚤한 테두리 효과 (손그림 박스) */
+.border-sketch {
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  border: 3px solid #333;
+}
