@@ -27,9 +27,9 @@ export default function TruthBoard({ phase, answerer, question, result, setRealt
                     roomId={roomId}
                     targetDeviceId={answerer?.deviceId || ''} 
                     onStatusChange={setStatusMsg}
-                    onAnalyze={setRealtimeFace} // 분석된 데이터를 받아서 state 업데이트
+                    onAnalyze={setRealtimeFace} 
                 />
-                {/* 비네팅 효과 (가장자리 어둡게) */}
+                {/* 비네팅 효과 */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_60%,black_100%)] z-10" />
             </div>
 
@@ -56,7 +56,7 @@ export default function TruthBoard({ phase, answerer, question, result, setRealt
                     <div className="absolute inset-0 flex items-center justify-center">
                         {/* 중앙 타겟팅 UI */}
                         <div className="w-[600px] h-[600px] border border-cyan-400/20 rounded-full flex items-center justify-center animate-spin-slow opacity-50">
-                             <div className="w-[580px] h-[580px] border-t-2 border-b-2 border-cyan-400/40 rounded-full" />
+                            <div className="w-[580px] h-[580px] border-t-2 border-b-2 border-cyan-400/40 rounded-full" />
                         </div>
                         
                         {/* 좌측 데이터 패널 */}
@@ -66,26 +66,26 @@ export default function TruthBoard({ phase, answerer, question, result, setRealt
                             <HUDGauge label="TREMOR" value={realtimeFace.facialTremor * 100} color="purple" />
                         </div>
 
-                        {/* 우측 분석 패널 */}
-                        <div className="absolute right-12 top-1/2 -translate-y-1/2 text-right space-y-2">
-                             <div className="text-cyan-400 text-sm font-mono tracking-widest">ANALYSIS RESULT</div>
-                             <div className={`text-5xl font-black ${realtimeFace.stressLevel > 55 ? 'text-red-500 animate-pulse' : 'text-cyan-300'}`}>
+                        {/* 우측 분석 패널 (✅ 위치 수정됨: top-[65%]) */}
+                        <div className="absolute right-12 top-[65%] -translate-y-1/2 text-right space-y-2">
+                            <div className="text-cyan-400 text-sm font-mono tracking-widest">ANALYSIS RESULT</div>
+                            <div className={`text-5xl font-black ${realtimeFace.stressLevel > 55 ? 'text-red-500 animate-pulse' : 'text-cyan-300'}`}>
                                 {realtimeFace.stressLevel > 55 ? 'WARNING' : 'STABLE'}
-                             </div>
-                             <div className="text-gray-400 font-mono text-sm">
+                            </div>
+                            <div className="text-gray-400 font-mono text-sm">
                                 PUPIL: {realtimeFace.eyeMovement > 0.3 ? 'UNSTABLE' : 'NORMAL'}
-                             </div>
+                            </div>
                         </div>
 
-                        {/* 하단 질문 자막 */}
+                        {/* 하단 질문 자막 (✅ 위치/잘림 수정됨) */}
                         {question && (
-                            <div className="absolute bottom-12 w-full text-center px-20">
+                            <div className="absolute bottom-10 w-full text-center px-4 z-50">
                                 <motion.div 
                                     initial={{ y: 50, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
-                                    className="inline-block bg-black/80 px-12 py-8 rounded-3xl border border-white/10 backdrop-blur-md shadow-2xl"
+                                    className="inline-block bg-black/80 px-12 py-6 rounded-3xl border border-white/10 backdrop-blur-md shadow-2xl"
                                 >
-                                    <h2 className="text-4xl font-bold text-white leading-relaxed">
+                                    <h2 className="text-3xl md:text-4xl font-bold text-white leading-normal break-keep">
                                         "{question.content}"
                                     </h2>
                                 </motion.div>
@@ -97,11 +97,11 @@ export default function TruthBoard({ phase, answerer, question, result, setRealt
                 {/* 🏆 결과 발표 화면 */}
                 {phase === 'RESULT' && result && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md z-50">
-                         <motion.div 
+                        <motion.div 
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             className={`flex flex-col items-center p-16 rounded-[3rem] border-8 ${result.isLie ? 'border-red-600 bg-red-950/50' : 'border-green-500 bg-green-950/50'}`}
-                         >
+                        >
                             <h2 className="text-3xl text-white font-bold mb-4 tracking-widest">FINAL JUDGMENT</h2>
                             <div className={`text-[10rem] font-black mb-8 ${result.isLie ? 'text-red-500 drop-shadow-[0_0_50px_rgba(220,38,38,0.8)]' : 'text-green-400 drop-shadow-[0_0_50px_rgba(74,222,128,0.8)]'}`}>
                                 {result.isLie ? 'LIE' : 'TRUTH'}
@@ -109,7 +109,7 @@ export default function TruthBoard({ phase, answerer, question, result, setRealt
                             <div className="text-2xl text-white/80 font-mono bg-black/50 px-8 py-2 rounded-full">
                                 STRESS LEVEL: <span className="text-white font-bold">{result.stressLevel}%</span>
                             </div>
-                         </motion.div>
+                        </motion.div>
                     </div>
                 )}
             </div>
