@@ -113,7 +113,13 @@ export default function LobbyPage() {
             {gameType === 'JURUMARBLE' && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-gray-800/90 p-4 rounded-xl border border-yellow-500 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
                     <h3 className="text-xs font-bold text-yellow-400 mb-1">🎲 MARBLE TEST</h3>
-                    <button onClick={juru.testHandlers.handleTestStart} className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold transition">
+                    <button 
+                        onClick={() => {
+                            juru.testHandlers.handleTestStart(); // 1. 가짜 데이터(철수, 영희...) 만들기
+                            setCommonPhase('GAME');              // 2. 화면을 게임판(JuruBoard)으로 휙! 넘기기
+                        }} 
+                        className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold transition"
+                    >
                         1. 게임판 강제 이동
                     </button>
                     <button onClick={juru.testHandlers.handleTestDice} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold transition">
