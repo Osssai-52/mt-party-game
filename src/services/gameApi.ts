@@ -2,7 +2,7 @@ import api from './api';
 
 // 1. 데이터 타입 정의
 export interface JoinRoomReq {
-    roomId: string; // 명세서에 맞춰 roomCode -> roomId로 변경
+    roomId: string; 
     nickname: string;
 }
 
@@ -17,55 +17,42 @@ export const gameApi = {
     room: {
         create: () => api.post('/rooms'),
         get: (roomId: string) => api.get(`/rooms/${roomId}`),
-        // 명세서: POST /rooms/join body={ roomId, nickname }
         join: (data: JoinRoomReq) => api.post('/rooms/join', data),
     },
 
-    // 🎲 [주루마블 게임]
+    // 🎲 주루마블
     marble: {
         // [Phase 1] 벌칙 제출
-        // POST /api/v1/games/marble/penalty/submit
-        // ✨ 수정: 백엔드 명세에 맞춰 키값을 'penalty' -> 'text'로 변경
         submitPenalty: (roomId: string, text: string) => 
             api.post('/games/marble/penalty/submit', { roomId, text }),
 
-        // GET /api/v1/games/marble/penalty/status/{roomId}
         getPenaltyStatus: (roomId: string) => 
             api.get(`/games/marble/penalty/status/${roomId}`),
 
         // [Phase 2] 벌칙 투표
-        // GET /api/v1/games/marble/vote/penalties/{roomId}
         getVotePenalties: (roomId: string) => 
             api.get(`/games/marble/vote/penalties/${roomId}`),
 
-        // POST /api/v1/games/marble/vote
         vote: (roomId: string, penaltyId: string | number) => 
             api.post('/games/marble/vote', { roomId, penaltyId }),
 
-        // GET /api/v1/games/marble/vote/status/{roomId}
         getVoteStatus: (roomId: string) => 
             api.get(`/games/marble/vote/status/${roomId}`),
 
-        // POST /api/v1/games/marble/vote/finish
         finishVote: (roomId: string) => 
             api.post('/games/marble/vote/finish', { roomId }),
 
         // [Phase 3] 게임판 생성
-        // POST /api/v1/games/marble/init
         init: (roomId: string) => 
             api.post('/games/marble/init', { roomId }),
 
         // [Phase 4] 게임 진행
-        // POST /api/v1/games/marble/roll
-        // ✨ 수정: SSE 환경에서는 누가 굴렸는지 식별하기 위해 deviceId 추가 필수!
         rollDice: (roomId: string, deviceId: string) => 
             api.post('/games/marble/roll', { roomId, deviceId }),
 
-        // GET /api/v1/games/marble/state/{roomId}
         getState: (roomId: string) => 
             api.get(`/games/marble/state/${roomId}`),
 
-        // POST /api/v1/games/marble/end
         end: (roomId: string) => 
             api.post('/games/marble/end', { roomId }),
     },
@@ -157,6 +144,21 @@ export const gameApi = {
         // 진행
         nextRound: (roomId: string) => api.post('/games/truth/next-round', { roomId }),
         end: (roomId: string) => api.post('/games/truth/end', { roomId }),
+    },
+
+    // 몸으로 말해요 / 고요 속의 외침
+    quiz: {
+        getCategories: () => api.get('/games/quiz/categories'),
+        init: (roomId: string) => api.post('/games/quiz/init', { roomId }),
+        startRound: (roomId: string, categoryId: number) => api.post('/games/quiz/start', { roomId, categoryId }),
+        correct: (roomId: string) => api.post('/games/quiz/correct', { roomId }),
+        pass: (roomId: string) => api.post('/games/quiz/pass', { roomId }),
+        endRound: (roomId: string) => api.post('/games/quiz/end-round', { roomId }),
+        nextTeam: (roomId: string) => api.post('/games/quiz/next-team', { roomId }),
+        endGame: (roomId: string) => api.post('/games/quiz/end', { roomId }),
+        getRanking: (roomId: string) => api.get(`/games/quiz/ranking/${roomId}`),
+        getState: (roomId: string) => api.get(`/games/quiz/state/${roomId}`),
+        getCurrentWord: (roomId: string) => api.get(`/games/quiz/current-word/${roomId}`),
     }
 };
 

@@ -4,15 +4,17 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import gameApi from '../../../services/gameApi';
 import MafiaController from '../../../components/MafiaController';
-import TruthController from '../../../components/TruthController'; // ✨ 추가됨
+import TruthController from '../../../components/TruthController'; 
+import QuizController from '../../../components/QuizController'; 
 import { MafiaRole, MafiaPhase, MafiaPlayer } from '../../../types/mafia';
-import { TruthPhase } from '../../../types/truth'; // ✨ 추가됨 (없으면 문자열로 대체 가능)
+import { TruthPhase } from '../../../types/truth'; 
 
 // 게임 페이즈 통합 타입
 type GamePhase = 
     | 'LOBBY' | 'SUBMIT' | 'VOTE' | 'TEAM' | 'GAME' // 주루마블
     | 'MAFIA_GAME' // 마피아
-    | 'TRUTH_GAME'; // 진실게임 ✨
+    | 'TRUTH_GAME' // 진실게임 
+    | 'QUIZ_GAME'; // 몸으로 말해요/고요 속의 외침
 
 const getDeviceId = () => {
     if (typeof window === 'undefined') return '';
@@ -49,8 +51,11 @@ export default function PlayerRoomPage() {
     const [isAlive, setIsAlive] = useState(true);
     const [alivePlayers, setAlivePlayers] = useState<MafiaPlayer[]>([]);
 
-    // --- [진실게임 State] ✨ ---
+    // --- [진실게임 State] ---
     const [truthPhase, setTruthPhase] = useState<TruthPhase>('SELECT_ANSWERER');
+
+    // --- [몸으로 말해요 State] ---
+    const [quizPhase, setQuizPhase] = useState<string>('WAITING');
 
     // SSE 연결을 위한 Ref
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -67,7 +72,7 @@ export default function PlayerRoomPage() {
         };
         joinRoom();
 
-        // 2. 📡 SSE 연결 
+        // 2. SSE 연결 
         const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/sse/connect?roomId=${roomId}&deviceId=${deviceId}`;
         const eventSource = new EventSource(sseUrl);
         eventSourceRef.current = eventSource;
@@ -97,12 +102,11 @@ export default function PlayerRoomPage() {
             } catch (e) { console.error(e); }
         });
 
-        // 🌟 백엔드 명세에 맞춰 모든 페이즈 이벤트 수신!
+        // 모든 페이즈 이벤트 수신
         eventSource.addEventListener('MAFIA_NIGHT', () => setMafiaPhase('NIGHT'));
         eventSource.addEventListener('MAFIA_DAY_ANNOUNCEMENT', () => setMafiaPhase('DAY_ANNOUNCEMENT'));
         eventSource.addEventListener('MAFIA_VOTE_START', () => setMafiaPhase('VOTE'));
         
-        // ✨ 추가된 이벤트들
         eventSource.addEventListener('MAFIA_VOTE_RESULT', () => setMafiaPhase('VOTE_RESULT'));
         eventSource.addEventListener('MAFIA_FINAL_DEFENSE', () => setMafiaPhase('FINAL_DEFENSE'));
         eventSource.addEventListener('MAFIA_FINAL_VOTE_START', () => setMafiaPhase('FINAL_VOTE'));
@@ -116,11 +120,27 @@ export default function PlayerRoomPage() {
             if (me && !me.isAlive) setIsAlive(false);
         });
 
-        // ---------------- [진실게임 이벤트] ✨ ----------------
+        // ---------------- [진실게임 이벤트] ----------------
         eventSource.addEventListener('TRUTH_PHASE_CHANGE', (e) => {
             const data = JSON.parse(e.data);
             setTruthPhase(data.phase); // SUBMIT_QUESTIONS, ANSWERING 등
             setPhase('TRUTH_GAME'); // 메인 페이즈 전환
+        });
+
+        // ---------------- [몸으로 말해요 이벤트] ----------------
+        eventSource.addEventListener('QUIZ_STATE_UPDATE', (e) => {
+            const data = JSON.parse(e.data);
+            setPhase('QUIZ_GAME'); // 메인 페이즈 전환
+            if (data.phase) setQuizPhase(data.phase); // WAITING, PLAYING 등 서브 페이즈
+        });
+
+        eventSource.addEventListener('QUIZ_NEXT', () => {
+            setPhase('QUIZ_GAME');
+            setQuizPhase('PLAYING'); // 문제가 나오면 플레이 상태로
+        });
+
+        eventSource.addEventListener('QUIZ_FINISHED', () => {
+            setQuizPhase('FINISHED');
         });
 
         return () => {
@@ -254,7 +274,7 @@ export default function PlayerRoomPage() {
         );
     }
 
-    // --- [진실 게임] ✨ ---
+    // --- [진실 게임] ---
     if (phase === 'TRUTH_GAME') {
         return (
             <div className="min-h-screen bg-black text-white">
@@ -262,6 +282,18 @@ export default function PlayerRoomPage() {
                     roomId={roomId}
                     deviceId={deviceId}
                     phase={truthPhase}
+                />
+            </div>
+        );
+    }
+
+    // --- [몸으로 말해요] ---
+    if (phase === 'QUIZ_GAME') {
+        return (
+            <div className="min-h-screen bg-black text-white">
+                <QuizController 
+                    roomId={roomId}
+                    phase={quizPhase}
                 />
             </div>
         );

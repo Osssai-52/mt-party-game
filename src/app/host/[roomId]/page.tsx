@@ -10,10 +10,12 @@ import JuruBoard from '../../../components/JuruBoard';
 import Dice3D from '../../../components/Dice3D';
 import MafiaBoard from '../../../components/MafiaBoard';
 import TruthBoard from '../../../components/TruthBoard';
+import QuizBoard from '../../../components/QuizBoard';
 
 import useMafiaHost from '../../../hooks/useMafiaHost'; 
 import useJuruHost from '../../../hooks/useJuruHost'; 
 import useTruthHost from '../../../hooks/useTruthHost';
+import useQuizHost from '../../../hooks/useQuizHost';
 
 // 타입 정의
 interface GamePlayer {
@@ -35,19 +37,19 @@ export default function LobbyPage() {
 
     // --- 공통 상태 (로비 대기용) ---
     const [players, setPlayers] = useState<GamePlayer[]>([]);
-    const [commonPhase, setCommonPhase] = useState('LOBBY'); // LOBBY, SUBMIT, VOTE, TEAM, GAME, MAFIA_GAME
+    const [commonPhase, setCommonPhase] = useState('LOBBY'); 
     
     // SSE 연결 (공통)
     const eventSourceRef = useRef<EventSource | null>(null);
 
-    // 🌟 [Hook 연결] 주루마블 & 마피아 & 진실게임 로직 불러오기
+    // 🌟 [Hook 연결] 
     const juru = useJuruHost(roomId, players, eventSourceRef.current);
     const mafia = useMafiaHost(roomId, players, eventSourceRef.current);
     const truth = useTruthHost(roomId, players, eventSourceRef.current);
+    const quiz = useQuizHost(roomId, eventSourceRef.current); 
 
     // SSE 초기화 및 공통 이벤트 처리
     useEffect(() => {
-        // 안전장치: 백엔드 주소가 없으면 연결 시도 안 함 (에러 방지)
         if (!roomId || !process.env.NEXT_PUBLIC_API_URL) {
             console.log("⚠️ 백엔드 연결 없음: 테스트 모드로 동작합니다.");
             return;
@@ -63,7 +65,6 @@ export default function LobbyPage() {
         const eventSource = new EventSource(sseUrl);
         eventSourceRef.current = eventSource;
 
-        // [공통] 플레이어 입장 처리
         eventSource.addEventListener('PLAYER_JOINED', (e) => {
             const newPlayer = JSON.parse(e.data);
             setPlayers(prev => {
@@ -80,7 +81,6 @@ export default function LobbyPage() {
             });
         });
 
-        // [공통] 페이즈 변경 감지 (화면 전환용)
         eventSource.addEventListener('MARBLE_PHASE_CHANGE', (e) => {
             const data = JSON.parse(e.data);
             setCommonPhase(data.phase);
@@ -98,6 +98,13 @@ export default function LobbyPage() {
         else if (gameType === 'TRUTH') { 
             await truth.startGame();
             setCommonPhase('TRUTH_GAME');
+        }
+        else if (gameType === 'SPEED_QUIZ') { 
+            // 실제 게임이면 actions.initGame()을 부르겠지만, 
+            // 백엔드가 없으면 여기서 에러가 나므로 테스트용으로 바로 진입하려면 아래처럼 해도 됨.
+            // 일단은 정석대로 호출하고, 에러나면 테스트 버튼으로 커버하게 둠.
+            await quiz.actions.initGame(); 
+            setCommonPhase('QUIZ_GAME');
         }
         else {
             await juru.handleStartGame();
@@ -121,42 +128,18 @@ export default function LobbyPage() {
             {gameType === 'JURUMARBLE' && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-gray-800/90 p-4 rounded-xl border border-yellow-500 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
                     <h3 className="text-xs font-bold text-yellow-400 mb-1">🎲 MARBLE TEST</h3>
-                    
-                    <button 
-                        onClick={() => {
-                            juru.testHandlers.handleTestStart(); 
-                        }} 
-                        className="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm font-bold transition"
-                    >
-                        1. 가짜 참가자 생성
-                    </button>
-
-                    {/* ✨ 팀 배정 테스트 버튼들 */}
+                    <button onClick={() => juru.testHandlers.handleTestStart()} className="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm font-bold transition">1. 가짜 참가자 생성</button>
                     {commonPhase === 'TEAM' && (
                         <>
                             <div className="h-[1px] bg-gray-600 my-1"></div>
-                            <button onClick={() => juru.testHandlers.handleTestTeamBuilding('RANDOM')} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold">
-                                [TEST] 랜덤 결과 보기
-                            </button>
-                            <button onClick={() => juru.testHandlers.handleTestTeamBuilding('MANUAL')} className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm font-bold">
-                                [TEST] 팀 초기화
-                            </button>
+                            <button onClick={() => juru.testHandlers.handleTestTeamBuilding('RANDOM')} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold">[TEST] 랜덤 결과 보기</button>
+                            <button onClick={() => juru.testHandlers.handleTestTeamBuilding('MANUAL')} className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm font-bold">[TEST] 팀 초기화</button>
                         </>
                     )}
-
                     <div className="h-[1px] bg-gray-600 my-1"></div>
-                    
-                    <button 
-                        onClick={() => setCommonPhase('GAME')}
-                        className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold transition"
-                    >
-                        2. 게임판 강제 이동
-                    </button>
-                    
+                    <button onClick={() => setCommonPhase('GAME')} className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold transition">2. 게임판 강제 이동</button>
                     {commonPhase === 'GAME' && (
-                        <button onClick={juru.testHandlers.handleTestDice} className="bg-pink-600 hover:bg-pink-500 px-3 py-1 rounded text-sm font-bold transition">
-                            3. 주사위 굴리기
-                        </button>
+                        <button onClick={juru.testHandlers.handleTestDice} className="bg-pink-600 hover:bg-pink-500 px-3 py-1 rounded text-sm font-bold transition">3. 주사위 굴리기</button>
                     )}
                 </div>
             )}
@@ -165,24 +148,11 @@ export default function LobbyPage() {
             {gameType === 'MAFIA' && commonPhase === 'MAFIA_GAME' && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-gray-800/90 p-4 rounded-xl border border-purple-500 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
                     <h3 className="text-xs font-bold text-purple-400 mb-1">🕵️ MAFIA TEST</h3>
-                    <button 
-                        onClick={() => {
-                            mafia.testHandlers.handleTestStart(); 
-                            setCommonPhase('MAFIA_GAME');        
-                        }}
-                        className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold"
-                    >
-                        1. 게임 강제 시작
-                    </button>
-                    {/* 게임 화면일 때만 나머지 버튼 보이기 */}
+                    <button onClick={() => { mafia.testHandlers.handleTestStart(); setCommonPhase('MAFIA_GAME'); }} className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold">1. 게임 강제 시작</button>
                     {commonPhase === 'MAFIA_GAME' && (
                         <>
-                            <button onClick={mafia.testHandlers.handleTestNextPhase} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold">
-                                2. 페이즈 넘기기
-                            </button>
-                            <button onClick={mafia.testHandlers.handleTestKillRandom} className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm font-bold">
-                                3. 랜덤 처형 💀
-                            </button>
+                            <button onClick={mafia.testHandlers.handleTestNextPhase} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold">2. 페이즈 넘기기</button>
+                            <button onClick={mafia.testHandlers.handleTestKillRandom} className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm font-bold">3. 랜덤 처형 💀</button>
                         </>
                     )}
                 </div>
@@ -192,30 +162,39 @@ export default function LobbyPage() {
             {gameType === 'TRUTH' && commonPhase === 'TRUTH_GAME' && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-gray-800/90 p-4 rounded-xl border border-cyan-500 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
                     <h3 className="text-xs font-bold text-cyan-400 mb-1">🧠 TRUTH TEST</h3>
-                    <button onClick={() => truth.testHandlers.handleTestSelectRandom()} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold">
-                        1. 답변자 랜덤 선정
+                    <button onClick={() => truth.testHandlers.handleTestSelectRandom()} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold">1. 답변자 랜덤 선정</button>
+                    <button onClick={() => truth.testHandlers.handleTestSelectQuestion()} className="bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded text-sm font-bold">2. 질문 뽑기</button>
+                    <button onClick={() => truth.testHandlers.handleTestConfirmQuestion()} className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold">3. 질문 확정 (HUD 시작)</button>
+                    <button onClick={() => truth.testHandlers.handleTestFinishAnswering()} className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm font-bold">4. 답변 종료 (결과)</button>
+                    <button onClick={() => truth.testHandlers.handleTestNextRound()} className="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm font-bold">5. 다음 라운드</button>
+                </div>
+            )}
+
+            {/* 4. ✨ 몸으로 말해요용 테스트 버튼 (수정됨!) */}
+            {gameType === 'SPEED_QUIZ' && commonPhase === 'QUIZ_GAME' && (
+                <div className="fixed bottom-4 right-4 z-[9999] bg-gray-800/90 p-4 rounded-xl border border-cyan-400 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
+                    <h3 className="text-xs font-bold text-cyan-300 mb-1">🙆‍♂️ QUIZ TEST</h3>
+                    {/* 👇 여기를 quiz.actions 대신 quiz.testHandlers로 변경했어! */}
+                    <button onClick={() => quiz.testHandlers.handleTestInit()} className="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm font-bold">
+                        1. 초기화 (카테고리 생성)
                     </button>
-                    <button onClick={() => truth.testHandlers.handleTestSelectQuestion()} className="bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded text-sm font-bold">
-                        2. 질문 뽑기
+                    <button onClick={() => quiz.testHandlers.handleTestStartRound(1)} className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm font-bold">
+                        2. 라운드 시작 (문제 출제)
                     </button>
-                    <button onClick={() => truth.testHandlers.handleTestConfirmQuestion()} className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm font-bold">
-                        3. 질문 확정 (HUD 시작)
+                    <button onClick={() => quiz.testHandlers.handleTestNextTeam()} className="bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded text-sm font-bold">
+                        3. 다음 팀 턴
                     </button>
-                    <button onClick={() => truth.testHandlers.handleTestFinishAnswering()} className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm font-bold">
-                        4. 답변 종료 (결과)
-                    </button>
-                    <button onClick={() => truth.testHandlers.handleTestNextRound()} className="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm font-bold">
-                        5. 다음 라운드
+                    <button onClick={() => quiz.testHandlers.handleTestEndGame()} className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm font-bold">
+                        4. 라운드 종료 (결과)
                     </button>
                 </div>
             )}
-            {/* ============================================================ */}
 
 
             {/* Header (게임 종류 표시) */}
             <div className="w-full flex justify-between items-center mb-6 z-10 h-16 shrink-0">
                 <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                    {gameType === 'MAFIA' ? '🕵️‍♂️ MAFIA GAME' : gameType === 'TRUTH' ? '🧠 TRUTH GAME' : '🎲 JURU MARBLE'}
+                    {gameType === 'MAFIA' ? '🕵️‍♂️ MAFIA GAME' : gameType === 'TRUTH' ? '🧠 TRUTH GAME' : gameType === 'SPEED_QUIZ' ? '🙆‍♂️ SPEED QUIZ' : '🎲 JURU MARBLE'}
                 </h1>
                 <div className="flex items-center gap-4">
                     <div className="bg-gray-800 px-4 py-2 rounded-full border border-gray-600 flex items-center gap-2">
@@ -258,7 +237,7 @@ export default function LobbyPage() {
                                 ))}
                             </div>
 
-                            {/* 게임 시작 버튼 (게임 타입에 따라 분기) */}
+                            {/* 게임 시작 버튼 */}
                             {gameType === 'MAFIA' ? (
                                 <button onClick={handleStartGame} className="w-full py-4 bg-red-600 hover:bg-red-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
                                     🕵️‍♂️ 마피아 게임 시작!
@@ -266,6 +245,10 @@ export default function LobbyPage() {
                             ) : gameType === 'TRUTH' ? (
                                 <button onClick={handleStartGame} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
                                     🧠 진실 게임 시작!
+                                </button>
+                            ) : gameType === 'SPEED_QUIZ' ? (
+                                <button onClick={handleStartGame} className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
+                                    🙆‍♂️ 몸으로 말해요 시작!
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
@@ -278,7 +261,7 @@ export default function LobbyPage() {
                     </div>
                 )}
 
-                {/* --- 🎲 주루마블 UI (Hook 데이터 연결) --- */}
+                {/* --- 🎲 주루마블 UI --- */}
                 {gameType === 'JURUMARBLE' && (
                     <>
                         {commonPhase === 'SUBMIT' && (
@@ -405,7 +388,7 @@ export default function LobbyPage() {
                     </>
                 )}
 
-                {/* --- 🕵️‍♀️ 마피아 UI (Hook 데이터 연결) --- */}
+                {/* --- 🕵️‍♀️ 마피아 UI --- */}
                 {gameType === 'MAFIA' && commonPhase === 'MAFIA_GAME' && (
                     <MafiaBoard 
                         players={mafia.mafiaPlayers}
@@ -414,12 +397,11 @@ export default function LobbyPage() {
                         systemMessage={mafia.systemMessage}
                         voteStatus={mafia.voteStatus}
                         winner={mafia.winner}
-                        // 🌟 [수정됨] 찬반 투표 상태 연결
                         finalVoteStatus={mafia.finalVoteStatus}
                     />
                 )}
 
-                {/* --- 🧠 진실게임 UI (Hook 데이터 연결) --- */}
+                {/* --- 🧠 진실게임 UI --- */}
                 {gameType === 'TRUTH' && commonPhase === 'TRUTH_GAME' && (
                     <TruthBoard 
                         phase={truth.phase}
@@ -429,6 +411,19 @@ export default function LobbyPage() {
                         setRealtimeFace={truth.setRealtimeFace}
                         realtimeFace={truth.realtimeFace}
                         roomId={roomId}
+                    />
+                )}
+
+                {/* --- 🙆‍♂️ 몸으로 말해요 UI (NEW!) --- */}
+                {gameType === 'SPEED_QUIZ' && commonPhase === 'QUIZ_GAME' && (
+                    <QuizBoard 
+                        phase={quiz.phase}
+                        gameState={quiz.gameState}
+                        categories={quiz.categories}
+                        ranking={quiz.ranking}
+                        onStartRound={quiz.actions.startRound}
+                        onNextTeam={quiz.actions.handleNextTeam}
+                        onEndGame={quiz.actions.handleEndGame}
                     />
                 )}
 
