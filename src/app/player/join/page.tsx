@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import gameApi from '../../../services/gameApi';
 
 function PlayerJoinContent() {
     const router = useRouter();
@@ -21,7 +22,7 @@ function PlayerJoinContent() {
         }
     }, [searchParams]);
 
-    const handleJoin = (e: React.FormEvent) => {
+    const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault(); // 새로고침 방지
         if (!roomCode || !nickname) {
             alert('방 번호와 닉네임을 모두 입력해주세요! 🚨');
@@ -30,12 +31,13 @@ function PlayerJoinContent() {
 
         setIsLoading(true);
 
-        // 나중에 여기서 서버로 "입장시켜줘!" 요청을 보낼 거야.
-        // 지금은 1초 뒤에 그냥 입장 성공한 척 넘어갈게!
-        setTimeout(() => {
-            // 플레이어 대기실로 이동
+        try {
+            await gameApi.room.join({ roomId: roomCode, nickname });
             router.push(`/player/${roomCode}?nickname=${nickname}`);
-        }, 1000);
+        } catch (e) {
+            alert('방 입장 실패! 방 번호를 확인하세요.');
+            setIsLoading(false);
+        }
     };
 
     return (

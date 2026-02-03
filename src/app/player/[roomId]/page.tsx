@@ -79,7 +79,7 @@ export default function PlayerRoomPage() {
         joinRoom();
 
         // 2. SSE 연결 
-        const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/sse/connect?roomId=${roomId}&deviceId=${deviceId}`;
+        const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/sse/player/connect?roomId=${roomId}&deviceId=${deviceId}`;
         const eventSource = new EventSource(sseUrl);
         eventSourceRef.current = eventSource;
 
@@ -191,7 +191,7 @@ export default function PlayerRoomPage() {
     const handleFinishVoting = async () => {
         if (votedIds.length === 0 && !confirm("투표 안 해?")) return;
         setIsVoteFinished(true);
-        await gameApi.marble.completeVote(roomId);
+        await gameApi.marble.finishVote(roomId);
     };
 
     const handleRollDice = async () => {
