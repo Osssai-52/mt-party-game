@@ -78,7 +78,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
                 <h2 className="text-3xl font-bold mb-12">중간 점수 확인</h2>
                 
                 <div className="bg-gray-800 p-8 rounded-3xl w-full max-w-2xl mb-8">
-                     {Object.entries(gameState.score).map(([team, score]) => (
+                    {Object.entries(gameState.score).map(([team, score]) => (
                         <div key={team} className="flex justify-between text-4xl font-bold mb-4 last:mb-0 border-b border-gray-700 pb-2 last:border-0">
                             <span>Team {team}</span>
                             <span className="text-yellow-400">{score}점</span>
@@ -98,7 +98,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
         );
     }
 
-    // ✨ 4. [추가됨] 최종 결과 (Ranking)
+    // 4. 최종 결과 (Ranking)
     if (phase === 'FINISHED') {
         // 랭킹 데이터 정렬 (점수 높은 순)
         const sortedRanking = ranking 
@@ -152,7 +152,25 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
                     )}
                 </div>
                 
-                <button onClick={() => window.location.reload()} className="px-10 py-4 bg-white text-black rounded-full font-bold text-xl hover:scale-105 transition z-10">
+                {/* 4등 이하 리스트 */}
+                {sortedRanking.length > 3 && (
+                    <div className="w-full max-w-4xl z-10 mb-8">
+                        <div className="flex flex-wrap justify-center gap-4">
+                            {sortedRanking.slice(3).map(([team, score], index) => (
+                                <div key={team} className="bg-white/10 border border-white/20 backdrop-blur-sm px-6 py-3 rounded-xl flex items-center gap-4 animate-fadeIn">
+                                    <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-sm font-bold">
+                                        {index + 4}th
+                                    </span>
+                                    <span className="text-white font-bold text-xl">{team}팀</span>
+                                    <div className="w-px h-4 bg-white/20"></div>
+                                    <span className="text-gray-300 text-lg font-mono">{score}점</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <button onClick={() => window.location.reload()} className="px-10 py-4 bg-white text-black rounded-full font-bold text-xl hover:scale-105 transition z-10 shadow-lg">
                     메인으로 돌아가기 🏠
                 </button>
             </div>
