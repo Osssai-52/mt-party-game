@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import gameApi from '../../../services/gameApi';
+import { getErrorMessage } from '../../../services/api';
+import { useToast } from '../../../components/Toast';
 import MafiaController from '../../../components/MafiaController';
-import TruthController from '../../../components/TruthController'; 
-import QuizController from '../../../components/QuizController'; 
+import TruthController from '../../../components/TruthController';
+import QuizController from '../../../components/QuizController';
 import { MafiaRole, MafiaPhase, MafiaPlayer } from '../../../types/mafia';
-import { TruthPhase } from '../../../types/truth'; 
+import { TruthPhase } from '../../../types/truth';
 import LiarController from '../../../components/LiarController';
 import { LiarPhase } from '../../../types/liar';
 
@@ -34,10 +36,12 @@ export default function PlayerRoomPage() {
     const roomId = params.roomId as string;
     const searchParams = useSearchParams();
     const nickname = searchParams.get('nickname') || '익명';
-    const deviceId = getDeviceId(); 
+    const deviceId = getDeviceId();
+    const { showError, showSuccess } = useToast();
 
     // 공통 상태
     const [phase, setPhase] = useState<GamePhase>('LOBBY');
+    const [isConnected, setIsConnected] = useState(false);
     
     // --- [주루마블 State] ---
     const [myPenalties, setMyPenalties] = useState<string[]>([]);
@@ -66,11 +70,35 @@ export default function PlayerRoomPage() {
     // SSE 연결을 위한 Ref
     const eventSourceRef = useRef<EventSource | null>(null);
 
+    // SSE 연결 함수 (재연결 지원)
+    const connectSSE = useCallback(() => {
+        const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/sse/player/connect?roomId=${roomId}&deviceId=${deviceId}`;
+        const eventSource = new EventSource(sseUrl);
+        eventSourceRef.current = eventSource;
+
+        eventSource.onopen = () => {
+            setIsConnected(true);
+            console.log('SSE 연결됨');
+        };
+
+        eventSource.onerror = () => {
+            setIsConnected(false);
+            eventSource.close();
+            // 3초 후 재연결 시도
+            setTimeout(() => {
+                console.log('SSE 재연결 시도...');
+                connectSSE();
+            }, 3000);
+        };
+
+        return eventSource;
+    }, [roomId, deviceId]);
+
     useEffect(() => {
         // 1. 방 입장 API 호출
         const joinRoom = async () => {
             try {
-                await gameApi.room.join({ roomId, nickname }); 
+                await gameApi.room.join({ roomId, nickname });
                 console.log(`입장 성공: ${nickname}`);
             } catch (e) {
                 console.error("입장 실패", e);
@@ -78,10 +106,8 @@ export default function PlayerRoomPage() {
         };
         joinRoom();
 
-        // 2. SSE 연결 
-        const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/sse/player/connect?roomId=${roomId}&deviceId=${deviceId}`;
-        const eventSource = new EventSource(sseUrl);
-        eventSourceRef.current = eventSource;
+        // 2. SSE 연결 (재연결 로직 포함)
+        const eventSource = connectSSE();
 
         // [공통] 페이즈 변경 (게임 종류 전환 포함)
         eventSource.addEventListener('MARBLE_PHASE_CHANGE', (e) => {
@@ -162,7 +188,7 @@ export default function PlayerRoomPage() {
         return () => {
             eventSource.close();
         };
-    }, [roomId, nickname, deviceId]);
+    }, [roomId, nickname, deviceId, connectSSE]);
 
     // --- 주루마블 API 함수들 ---
     const fetchVoteList = async () => {
@@ -174,12 +200,13 @@ export default function PlayerRoomPage() {
 
     const handleSubmitPenalty = async () => {
         if (!inputPenalty.trim()) return;
-        if (myPenalties.length >= 2) { alert("2개까지만!"); return; }
+        if (myPenalties.length >= 2) { showError("2개까지만 제출할 수 있어요!"); return; }
         try {
             await gameApi.marble.submitPenalty(roomId, inputPenalty);
             setMyPenalties(prev => [...prev, inputPenalty]);
             setInputPenalty('');
-        } catch (e) { alert("실패!"); }
+            showSuccess("벌칙 제출 완료!");
+        } catch (e) { showError(getErrorMessage(e)); }
     };
 
     const handleVote = async (id: number) => {
@@ -201,7 +228,7 @@ export default function PlayerRoomPage() {
             await gameApi.marble.rollDice(roomId, deviceId);
         } catch (error) {
             console.error(error);
-            alert("주사위 굴리기 실패");
+            showError(getErrorMessage(error));
             setIsRolling(false);
         }
     };
@@ -235,9 +262,12 @@ export default function PlayerRoomPage() {
     );
 
     if (phase === 'TEAM') {
-        const teamNames = ['A', 'B', 'C', 'D'].slice(0, 2); 
+        const teamNames = ['A', 'B', 'C', 'D'].slice(0, 2);
         const handleSelectTeam = async (teamName: string) => {
-            try { await gameApi.team.selectTeam(roomId, deviceId, teamName); } catch (e) { alert("팀 선택 실패!"); }
+            try {
+                await gameApi.team.selectTeam(roomId, deviceId, teamName);
+                showSuccess(`${teamName}팀 선택 완료!`);
+            } catch (e) { showError(getErrorMessage(e)); }
         };
         return (
             <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">

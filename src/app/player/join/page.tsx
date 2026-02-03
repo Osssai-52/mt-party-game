@@ -3,10 +3,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import gameApi from '../../../services/gameApi';
+import { getErrorMessage } from '../../../services/api';
+import { useToast } from '../../../components/Toast';
 
 function PlayerJoinContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { showError, showSuccess } = useToast();
 
     // 입력값 상태 (방 번호, 닉네임)
     const [roomCode, setRoomCode] = useState('');
@@ -25,7 +28,7 @@ function PlayerJoinContent() {
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault(); // 새로고침 방지
         if (!roomCode || !nickname) {
-            alert('방 번호와 닉네임을 모두 입력해주세요! 🚨');
+            showError('방 번호와 닉네임을 모두 입력해주세요!');
             return;
         }
 
@@ -33,9 +36,10 @@ function PlayerJoinContent() {
 
         try {
             await gameApi.room.join({ roomId: roomCode, nickname });
+            showSuccess('입장 성공!');
             router.push(`/player/${roomCode}?nickname=${nickname}`);
         } catch (e) {
-            alert('방 입장 실패! 방 번호를 확인하세요.');
+            showError(getErrorMessage(e));
             setIsLoading(false);
         }
     };
