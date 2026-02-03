@@ -12,6 +12,7 @@ const GAME_THEMES: Record<GameType, string> = {
     MAFIA: 'from-red-600 via-red-900 to-black',
     TRUTH: 'from-pink-500 via-rose-500 to-purple-600',
     SPEED_QUIZ: 'from-blue-500 via-cyan-500 to-teal-500',
+    LIAR: 'from-green-400 via-emerald-500 to-teal-600',
 };
 
 const SHADOW_COLORS: Record<GameType, string> = {
@@ -19,6 +20,7 @@ const SHADOW_COLORS: Record<GameType, string> = {
     MAFIA: 'shadow-red-600/50',
     TRUTH: 'shadow-pink-500/50',
     SPEED_QUIZ: 'shadow-cyan-500/50',
+    LIAR: 'shadow-green-500/50',
 };
 
 export default function GameSelectPage() {
@@ -29,17 +31,17 @@ export default function GameSelectPage() {
         const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
         
         // 2. 방 번호와 게임 종류를 들고 '호스트 대기방'으로 이동! 🚀
-        // 예: /host/1234?game=MAFIA
         router.push(`/host/${roomCode}?game=${gameId}`);
     };
 
     return (
         <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {/* ... (아까 언니가 짠 예쁜 디자인 코드 그대로) ... */}
+            {/* ... (코드 그대로) ... */}
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl z-10">
                 {GAMES.map((game, index) => {
                     const gradient = GAME_THEMES[game.id];
+                    const shadowColor = SHADOW_COLORS[game.id];
                     return (
                         <motion.div
                             key={game.id}

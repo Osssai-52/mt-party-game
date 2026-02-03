@@ -159,6 +159,15 @@ export const gameApi = {
         getRanking: (roomId: string) => api.get(`/games/quiz/ranking/${roomId}`),
         getState: (roomId: string) => api.get(`/games/quiz/state/${roomId}`),
         getCurrentWord: (roomId: string) => api.get(`/games/quiz/current-word/${roomId}`),
+    },
+
+    // 라이어 게임
+    liar: {
+        getCategories: () => api.get('/games/liar/categories'),
+        init: (roomId: string, categoryId: number) => api.post('/games/liar/init', { roomId, categoryId }),
+        getRole: (roomId: string, deviceId: string) => api.get(`/games/liar/role?roomId=${roomId}&deviceId=${deviceId}`),
+        voteMore: (roomId: string, deviceId: string, wantMore: boolean) => api.post('/games/liar/vote-more', { roomId, deviceId, wantMore }),
+        getState: (roomId: string) => api.get(`/games/liar/state/${roomId}`),
     }
 };
 

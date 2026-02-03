@@ -1,13 +1,13 @@
 // src/constants/gameList.ts
 
-export type GameType = 'JURUMARBLE' | 'MAFIA' | 'TRUTH' | 'SPEED_QUIZ';
+export type GameType = 'JURUMARBLE' | 'MAFIA' | 'TRUTH' | 'SPEED_QUIZ' | 'LIAR';
 
 export interface GameInfo {
   id: GameType;
   title: string;
   description: string;
-  icon: string; // 이모지나 이미지 경로
-  color: string; // 테마 색상
+  icon: string; 
+  color: string; 
 }
 
 export const GAMES: GameInfo[] = [
@@ -29,7 +29,7 @@ export const GAMES: GameInfo[] = [
     id: 'TRUTH',
     title: '진실게임',
     description: 'NO LIE in your area 👀',
-    icon: '🤥',
+    icon: '🤫',
     color: 'from-pink-500 to-rose-600',
   },
   {
@@ -38,5 +38,12 @@ export const GAMES: GameInfo[] = [
     description: 'QUIZ in your area 📢',
     icon: '🙆‍♂️',
     color: 'from-blue-500 to-cyan-400',
+  },
+  {
+    id: 'LIAR', 
+    title: '라이어 게임',
+    description: 'LIAR in your area 🤥',
+    icon: '🦜',
+    color: 'from-green-500 to-emerald-700', 
   },
 ];

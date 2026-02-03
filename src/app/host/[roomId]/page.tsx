@@ -11,11 +11,15 @@ import Dice3D from '../../../components/Dice3D';
 import MafiaBoard from '../../../components/MafiaBoard';
 import TruthBoard from '../../../components/TruthBoard';
 import QuizBoard from '../../../components/QuizBoard';
+// 라이어 게임 컴포넌트
+import LiarBoard from '../../../components/LiarBoard';
 
 import useMafiaHost from '../../../hooks/useMafiaHost'; 
 import useJuruHost from '../../../hooks/useJuruHost'; 
 import useTruthHost from '../../../hooks/useTruthHost';
 import useQuizHost from '../../../hooks/useQuizHost';
+// 라이어 게임 훅
+import useLiarHost from '../../../hooks/useLiarHost';
 
 // 타입 정의
 interface GamePlayer {
@@ -47,6 +51,7 @@ export default function LobbyPage() {
     const mafia = useMafiaHost(roomId, players, eventSourceRef.current);
     const truth = useTruthHost(roomId, players, eventSourceRef.current);
     const quiz = useQuizHost(roomId, eventSourceRef.current); 
+    const liar = useLiarHost(roomId, players, eventSourceRef.current);
 
     // SSE 초기화 및 공통 이벤트 처리
     useEffect(() => {
@@ -100,11 +105,12 @@ export default function LobbyPage() {
             setCommonPhase('TRUTH_GAME');
         }
         else if (gameType === 'SPEED_QUIZ') { 
-            // 실제 게임이면 actions.initGame()을 부르겠지만, 
-            // 백엔드가 없으면 여기서 에러가 나므로 테스트용으로 바로 진입하려면 아래처럼 해도 됨.
-            // 일단은 정석대로 호출하고, 에러나면 테스트 버튼으로 커버하게 둠.
             await quiz.actions.initGame(); 
             setCommonPhase('QUIZ_GAME');
+        }
+        else if (gameType === 'LIAR') {
+            await liar.startGame(0); 
+            setCommonPhase('LIAR_GAME');
         }
         else {
             await juru.handleStartGame();
@@ -170,11 +176,10 @@ export default function LobbyPage() {
                 </div>
             )}
 
-            {/* 4. ✨ 몸으로 말해요용 테스트 버튼 (수정됨!) */}
+            {/* 4. 몸으로 말해요용 테스트 버튼 */}
             {gameType === 'SPEED_QUIZ' && commonPhase === 'QUIZ_GAME' && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-gray-800/90 p-4 rounded-xl border border-cyan-400 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
                     <h3 className="text-xs font-bold text-cyan-300 mb-1">🙆‍♂️ QUIZ TEST</h3>
-                    {/* 👇 여기를 quiz.actions 대신 quiz.testHandlers로 변경했어! */}
                     <button onClick={() => quiz.testHandlers.handleTestInit()} className="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm font-bold">
                         1. 초기화 (카테고리 생성)
                     </button>
@@ -190,12 +195,30 @@ export default function LobbyPage() {
                 </div>
             )}
 
+            {/* 🦜 5. 라이어게임용 테스트 버튼 (NEW!) */}
+            {gameType === 'LIAR' && commonPhase === 'LIAR_GAME' && (
+                <div className="fixed bottom-4 right-4 z-[9999] bg-green-900/90 p-4 rounded-xl border border-green-400 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
+                    <h3 className="text-xs font-bold text-green-300 mb-1">🦜 LIAR TEST</h3>
+                    <button onClick={liar.testHandlers.start} className="bg-gray-600 px-2 py-1 text-xs font-bold rounded m-1">1. 시작</button>
+                    <button onClick={liar.testHandlers.nextTurn} className="bg-blue-600 px-2 py-1 text-xs font-bold rounded m-1">2. 턴 넘기기</button>
+                    <button onClick={liar.testHandlers.voteStart} className="bg-purple-600 px-2 py-1 text-xs font-bold rounded m-1">3. 투표 모드</button>
+                    <button onClick={liar.testHandlers.endGame} className="bg-red-600 px-2 py-1 text-xs font-bold rounded m-1">4. 결과</button>
+                </div>
+            )}
+
 
             {/* Header (게임 종류 표시) */}
             <div className="w-full flex justify-between items-center mb-6 z-10 h-16 shrink-0">
-                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                    {gameType === 'MAFIA' ? '🕵️‍♂️ MAFIA GAME' : gameType === 'TRUTH' ? '🧠 TRUTH GAME' : gameType === 'SPEED_QUIZ' ? '🙆‍♂️ SPEED QUIZ' : '🎲 JURU MARBLE'}
+                {/* 🎨 [수정] 게임 타입이 LIAR일 때 초록색 그라데이션 적용 */}
+                <h1 className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${
+                    gameType === 'LIAR' ? 'from-green-400 to-emerald-600' : 'from-purple-400 to-pink-600'
+                }`}>
+                    {gameType === 'MAFIA' ? '🕵️‍♂️ MAFIA GAME' : 
+                    gameType === 'TRUTH' ? '🧠 TRUTH GAME' : 
+                    gameType === 'SPEED_QUIZ' ? '🙆‍♂️ SPEED QUIZ' : 
+                    gameType === 'LIAR' ? '🦜 LIAR GAME' : '🎲 JURU MARBLE'}
                 </h1>
+
                 <div className="flex items-center gap-4">
                     <div className="bg-gray-800 px-4 py-2 rounded-full border border-gray-600 flex items-center gap-2">
                         <span className="text-gray-400 text-sm">CODE</span>
@@ -237,7 +260,7 @@ export default function LobbyPage() {
                                 ))}
                             </div>
 
-                            {/* 게임 시작 버튼 */}
+                            {/* 게임 시작 */}
                             {gameType === 'MAFIA' ? (
                                 <button onClick={handleStartGame} className="w-full py-4 bg-red-600 hover:bg-red-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
                                     🕵️‍♂️ 마피아 게임 시작!
@@ -249,6 +272,10 @@ export default function LobbyPage() {
                             ) : gameType === 'SPEED_QUIZ' ? (
                                 <button onClick={handleStartGame} className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
                                     🙆‍♂️ 몸으로 말해요 시작!
+                                </button>
+                            ) : gameType === 'LIAR' ? (
+                                <button onClick={handleStartGame} className="w-full py-4 bg-green-600 hover:bg-green-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
+                                    🦜 라이어 게임 시작!
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
@@ -264,6 +291,7 @@ export default function LobbyPage() {
                 {/* --- 🎲 주루마블 UI --- */}
                 {gameType === 'JURUMARBLE' && (
                     <>
+                        {/* 기존 주루마블 UI 코드 */}
                         {commonPhase === 'SUBMIT' && (
                             <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 rounded-3xl p-6 border border-gray-800 max-w-4xl w-full">
                                 <h2 className="text-4xl font-bold mb-4">😈 벌칙 제출 중...</h2>
@@ -290,13 +318,7 @@ export default function LobbyPage() {
                                 </h2>
                                 <div className="flex bg-gray-800 p-1 rounded-xl">
                                     {(['RANDOM', 'LADDER', 'MANUAL'] as const).map((method) => (
-                                        <button
-                                            key={method}
-                                            onClick={() => juru.setAssignMethod(method)}
-                                            className={`px-6 py-2 rounded-lg font-bold transition-all ${
-                                                juru.assignMethod === method ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
-                                            }`}
-                                        >
+                                        <button key={method} onClick={() => juru.setAssignMethod(method)} className={`px-6 py-2 rounded-lg font-bold transition-all ${juru.assignMethod === method ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
                                             {method === 'RANDOM' && '🎲 랜덤 배정'}
                                             {method === 'LADDER' && '🪜 사다리 타기'}
                                             {method === 'MANUAL' && '👆 수동 선택'}
@@ -332,7 +354,6 @@ export default function LobbyPage() {
                                         </div>
                                     )}
                                 </div>
-
                                 <div className="w-full grid grid-cols-2 gap-4">
                                     {juru.teamResult && Object.entries(juru.teamResult).map(([teamName, members]) => (
                                         <div key={teamName} className="bg-gray-800 p-4 rounded-xl border border-gray-700">
@@ -350,7 +371,6 @@ export default function LobbyPage() {
                                         </div>
                                     ))}
                                 </div>
-
                                 <button onClick={juru.handleStartGame} className="mt-8 bg-red-600 px-12 py-4 rounded-full text-2xl font-bold animate-bounce shadow-xl border-4 border-red-800">
                                     게임 시작! 🏁
                                 </button>
@@ -414,7 +434,7 @@ export default function LobbyPage() {
                     />
                 )}
 
-                {/* --- 🙆‍♂️ 몸으로 말해요 UI (NEW!) --- */}
+                {/* --- 🙆‍♂️ 몸으로 말해요 UI --- */}
                 {gameType === 'SPEED_QUIZ' && commonPhase === 'QUIZ_GAME' && (
                     <QuizBoard 
                         phase={quiz.phase}
@@ -424,6 +444,20 @@ export default function LobbyPage() {
                         onStartRound={quiz.actions.startRound}
                         onNextTeam={quiz.actions.handleNextTeam}
                         onEndGame={quiz.actions.handleEndGame}
+                    />
+                )}
+
+                {/* 🦜 라이어 게임 UI */}
+                {gameType === 'LIAR' && commonPhase === 'LIAR_GAME' && (
+                    <LiarBoard 
+                        phase={liar.phase}
+                        players={liar.gamePlayers}
+                        timer={liar.timer}
+                        category={liar.categoryName}
+                        currentExplainerIndex={liar.currentExplainerIndex}
+                        voteStatus={liar.voteStatus}
+                        keywordResult={liar.keyword}
+                        liarNameResult={liar.liarName}
                     />
                 )}
 

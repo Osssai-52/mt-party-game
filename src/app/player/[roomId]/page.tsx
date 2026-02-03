@@ -8,6 +8,8 @@ import TruthController from '../../../components/TruthController';
 import QuizController from '../../../components/QuizController'; 
 import { MafiaRole, MafiaPhase, MafiaPlayer } from '../../../types/mafia';
 import { TruthPhase } from '../../../types/truth'; 
+import LiarController from '../../../components/LiarController';
+import { LiarPhase } from '../../../types/liar';
 
 // 게임 페이즈 통합 타입
 type GamePhase = 
@@ -15,6 +17,7 @@ type GamePhase =
     | 'MAFIA_GAME' // 마피아
     | 'TRUTH_GAME' // 진실게임 
     | 'QUIZ_GAME'; // 몸으로 말해요/고요 속의 외침
+    | 'LIAR_GAME'; // 라이어게임
 
 const getDeviceId = () => {
     if (typeof window === 'undefined') return '';
@@ -56,6 +59,9 @@ export default function PlayerRoomPage() {
 
     // --- [몸으로 말해요 State] ---
     const [quizPhase, setQuizPhase] = useState<string>('WAITING');
+
+    // --- [라이어게임 State] ---
+    const [liarPhase, setLiarPhase] = useState<LiarPhase>('LOBBY');
 
     // SSE 연결을 위한 Ref
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -101,6 +107,16 @@ export default function PlayerRoomPage() {
                 setMafiaPhase('NIGHT');
             } catch (e) { console.error(e); }
         });
+
+        eventSource.addEventListener('LIAR_INIT', () => {
+            setPhase('LIAR_GAME');
+            setLiarPhase('ROLE_REVEAL');
+        });
+
+        eventSource.addEventListener('LIAR_NEXT_EXPLAINER', () => setLiarPhase('EXPLANATION'));
+        eventSource.addEventListener('LIAR_VOTE_UPDATE', () => setLiarPhase('VOTE_MORE_ROUND'));
+        eventSource.addEventListener('LIAR_POINTING_START', () => setLiarPhase('POINTING'));
+        eventSource.addEventListener('LIAR_GAME_END', () => setLiarPhase('GAME_END'));
 
         // 모든 페이즈 이벤트 수신
         eventSource.addEventListener('MAFIA_NIGHT', () => setMafiaPhase('NIGHT'));
@@ -297,6 +313,11 @@ export default function PlayerRoomPage() {
                 />
             </div>
         );
+    }
+
+    // --- [라이어게임] ---
+    if (phase === 'LIAR_GAME') {
+        return <LiarController roomId={roomId} deviceId={deviceId} phase={liarPhase} />;
     }
 
     return null;
