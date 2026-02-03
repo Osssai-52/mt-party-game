@@ -1,12 +1,9 @@
-// src/app/page.tsx (여기가 메인 화면!)
-
 'use client';
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { GAMES, GameType } from '../constants/gameList'; // 경로 확인 필요
+import { GAMES, GameType } from '../constants/gameList'; 
 
-// 🎨 Tailwind 색상 매핑
 const GAME_THEMES: Record<GameType, string> = {
     JURUMARBLE: 'from-yellow-400 via-orange-500 to-red-500', 
     MAFIA: 'from-red-600 via-red-900 to-black',
@@ -27,35 +24,47 @@ export default function GameSelectPage() {
     const router = useRouter();
 
     const handleCreateRoom = (gameId: GameType) => {
-        // 1. 방 번호 생성 (랜덤 4자리)
         const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-        
-        // 2. 방 번호와 게임 종류를 들고 '호스트 대기방'으로 이동! 🚀
         router.push(`/host/${roomCode}?game=${gameId}`);
     };
 
     return (
         <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {/* ... (코드 그대로) ... */}
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl z-10">
+            {/* 배경 효과 */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 via-black to-black opacity-50 z-0" />
+            
+            {/* 1. 메인 타이틀 (Jjam!) */}
+            <div className="z-20 text-center mb-10">
+                <h1 className="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 drop-shadow-[0_0_20px_rgba(255,165,0,0.6)] tracking-tighter animate-pulse font-hand">
+                    Jjam!
+                </h1>
+                <p className="text-gray-400 text-lg mt-2 font-bold tracking-widest uppercase">
+                    Premium Party Game Suite
+                </p>
+            </div>
+
+            {/* 2. 그리드 전략 수정: 3열 -> 6열로 쪼개기 */}
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-8 w-full max-w-6xl z-10">
                 {GAMES.map((game, index) => {
                     const gradient = GAME_THEMES[game.id];
-                    const shadowColor = SHADOW_COLORS[game.id];
+                    
+                    const gridClass = `md:col-span-2 ${index === 3 ? 'md:col-start-2' : ''}`;
+
                     return (
                         <motion.div
                             key={game.id}
                             initial={{ opacity: 0, y: 50 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.2 }}
-                            onClick={() => handleCreateRoom(game.id)} // 클릭하면 이동!
-                            className={`group cursor-pointer relative rounded-[32px] p-[3px] bg-gradient-to-br ${gradient} shadow-2xl`}
+                            onClick={() => handleCreateRoom(game.id)} 
+                            className={`group cursor-pointer relative rounded-[32px] p-[3px] bg-gradient-to-br ${gradient} shadow-2xl ${gridClass}`}
                         >
                             <div className="relative h-full bg-gray-900/95 backdrop-blur-xl rounded-[30px] p-8 flex flex-col items-center text-center">
-                                <div className="text-7xl mb-6">{game.icon}</div>
+                                <div className="text-7xl mb-6 group-hover:scale-110 transition-transform duration-300">{game.icon}</div>
                                 <h2 className="text-3xl font-bold mb-3 whitespace-pre-wrap">{game.title}</h2>
                                 <p className="text-gray-400 text-sm mb-8">{game.description}</p>
-                                <div className={`px-8 py-3 rounded-full border border-white/10 text-sm font-bold uppercase group-hover:bg-gradient-to-r ${gradient}`}>
+                                <div className={`px-8 py-3 rounded-full border border-white/10 text-sm font-bold uppercase group-hover:bg-gradient-to-r ${gradient} transition-all duration-300`}>
                                     Start Game
                                 </div>
                             </div>
