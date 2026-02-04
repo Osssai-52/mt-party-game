@@ -191,7 +191,7 @@ export default function PlayerRoomPage() {
         if (!inputPenalty.trim()) return;
         if (myPenalties.length >= 2) { showError("2개까지만 제출할 수 있어요!"); return; }
         try {
-            await gameApi.marble.submitPenalty(roomId, inputPenalty);
+            await gameApi.marble.submitPenalty(roomId, inputPenalty, deviceId);
             setMyPenalties(prev => [...prev, inputPenalty]);
             setInputPenalty('');
             showSuccess("벌칙 제출 완료!");

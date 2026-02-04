@@ -23,8 +23,8 @@ export const gameApi = {
     // 🎲 주루마블
     marble: {
         // [Phase 1] 벌칙 제출
-        submitPenalty: (roomId: string, text: string) => 
-            api.post('/games/marble/penalty/submit', { roomId, text }),
+        submitPenalty: (roomId: string, text: string, deviceId: string) =>
+            api.post('/games/marble/penalty/submit', { roomId, text, deviceId }),
 
         getPenaltyStatus: (roomId: string) => 
             api.get(`/games/marble/penalty/status/${roomId}`),
