@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { GAMES, GameType } from '../constants/gameList'; 
+import { GAMES, GameType } from '../constants/gameList';
+import gameApi from '../services/gameApi';
 
 const GAME_THEMES: Record<GameType, string> = {
     JURUMARBLE: 'from-yellow-400 via-orange-500 to-red-500', 
@@ -22,10 +24,24 @@ const SHADOW_COLORS: Record<GameType, string> = {
 
 export default function GameSelectPage() {
     const router = useRouter();
+    const [isCreating, setIsCreating] = useState(false);
 
-    const handleCreateRoom = (gameId: GameType) => {
-        const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-        router.push(`/host/${roomCode}?game=${gameId}`);
+    const handleCreateRoom = async (gameId: GameType) => {
+        if (isCreating) return;
+        setIsCreating(true);
+        try {
+            const res = await gameApi.room.create();
+            const { roomId, hostSessionId } = (res as any).data;
+            localStorage.setItem('host_session_id', hostSessionId);
+            router.push(`/host/${roomId}?game=${gameId}`);
+        } catch (e) {
+            console.error('방 생성 실패', e);
+            // 백엔드 연결 안 될 때 폴백: 로컬 코드로 테스트 모드
+            const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            router.push(`/host/${roomCode}?game=${gameId}`);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     return (

@@ -56,15 +56,10 @@ export default function LobbyPage() {
 
     // SSE 초기화 및 공통 이벤트 처리
     useEffect(() => {
-        if (!roomId || !process.env.NEXT_PUBLIC_API_URL) {
-            console.log("⚠️ 백엔드 연결 없음: 테스트 모드로 동작합니다.");
+        const hostId = localStorage.getItem('host_session_id');
+        if (!roomId || !hostId) {
+            console.log("⚠️ roomId 또는 hostSessionId 없음: 테스트 모드로 동작합니다.");
             return;
-        }
-
-        let hostId = localStorage.getItem('host_device_id');
-        if(!hostId) {
-            hostId = Math.random().toString(36).substring(7);
-            localStorage.setItem('host_device_id', hostId);
         }
         
         const sseUrl = `${API_BASE_URL}/sse/connect?roomId=${roomId}&sessionId=${hostId}`;
