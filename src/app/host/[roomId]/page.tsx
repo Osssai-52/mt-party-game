@@ -14,6 +14,7 @@ import QuizBoard from '../../../components/QuizBoard';
 // 라이어 게임 컴포넌트
 import LiarBoard from '../../../components/LiarBoard';
 import { API_BASE_URL } from '../../../services/api';
+import gameApi from '../../../services/gameApi';
 
 import useMafiaHost from '../../../hooks/useMafiaHost'; 
 import useJuruHost from '../../../hooks/useJuruHost'; 
@@ -275,7 +276,14 @@ export default function LobbyPage() {
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
-                                    <button onClick={() => setCommonPhase('SUBMIT')} className="flex-1 bg-purple-600 px-4 py-4 rounded-xl font-bold text-xl">
+                                    <button onClick={async () => {
+                                        try {
+                                            await gameApi.common.changePhase(roomId, 'SUBMIT');
+                                        } catch (e) {
+                                            console.error(e);
+                                            setCommonPhase('SUBMIT');
+                                        }
+                                    }} className="flex-1 bg-purple-600 px-4 py-4 rounded-xl font-bold text-xl">
                                         1. 벌칙 제출 단계로
                                     </button>
                                 </div>
@@ -292,7 +300,14 @@ export default function LobbyPage() {
                             <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 rounded-3xl p-6 border border-gray-800 max-w-4xl w-full">
                                 <h2 className="text-4xl font-bold mb-4">😈 벌칙 제출 중...</h2>
                                 <p className="text-xl text-gray-300 mb-8">현재 {juru.penaltyCount}개의 벌칙이 제출되었습니다.</p>
-                                <button onClick={() => setCommonPhase('VOTE')} className="bg-blue-600 px-8 py-4 rounded-full text-2xl font-bold animate-pulse">
+                                <button onClick={async () => {
+                                    try {
+                                        await gameApi.common.changePhase(roomId, 'VOTE');
+                                    } catch (e) {
+                                        console.error(e);
+                                        setCommonPhase('VOTE');
+                                    }
+                                }} className="bg-blue-600 px-8 py-4 rounded-full text-2xl font-bold animate-pulse">
                                     투표 시작하기 👉
                                 </button>
                             </div>
