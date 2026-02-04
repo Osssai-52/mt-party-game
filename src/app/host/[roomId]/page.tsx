@@ -299,7 +299,7 @@ export default function LobbyPage() {
                         {commonPhase === 'SUBMIT' && (
                             <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 rounded-3xl p-6 border border-gray-800 max-w-4xl w-full">
                                 <h2 className="text-4xl font-bold mb-4">😈 벌칙 제출 중...</h2>
-                                <p className="text-xl text-gray-300 mb-8">현재 {juru.penaltyCount}개의 벌칙이 제출되었습니다.</p>
+                                <p className="text-xl text-gray-300 mb-8">현재 {juru.penaltyCount} / {juru.expectedPenaltyCount} 개의 벌칙이 제출되었습니다.</p>
                                 <button onClick={async () => {
                                     try {
                                         await gameApi.common.changePhase(roomId, 'VOTE');

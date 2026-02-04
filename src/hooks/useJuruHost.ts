@@ -22,6 +22,7 @@ export default function useJuruHost(
     // --- State ---
     const [players, setPlayers] = useState<GamePlayer[]>([]); // 게임 진행 중인 플레이어들
     const [penaltyCount, setPenaltyCount] = useState(0);
+    const [expectedPenaltyCount, setExpectedPenaltyCount] = useState(0);
     const [finalPenalties, setFinalPenalties] = useState<{ text: string }[]>([]);
     const [teamCount, setTeamCount] = useState(2);
     const [teamResult, setTeamResult] = useState<Record<string, GamePlayer[]> | null>(null);
@@ -110,7 +111,8 @@ export default function useJuruHost(
         // 벌칙 제출 카운트 업데이트
         const onPenaltySubmitted = (e: MessageEvent) => {
             const data = JSON.parse(e.data);
-            setPenaltyCount(data.count);
+            setPenaltyCount(data.totalCount);
+            setExpectedPenaltyCount(data.expectedCount);
         };
 
         // 턴 변경 알림
@@ -327,6 +329,7 @@ export default function useJuruHost(
         players, 
         setPlayers, 
         penaltyCount,
+        expectedPenaltyCount,
         finalPenalties,
         teamCount, setTeamCount,
         teamResult,

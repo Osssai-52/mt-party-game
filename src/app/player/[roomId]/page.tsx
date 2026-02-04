@@ -46,8 +46,8 @@ export default function PlayerRoomPage() {
     // --- [주루마블 State] ---
     const [myPenalties, setMyPenalties] = useState<string[]>([]);
     const [inputPenalty, setInputPenalty] = useState('');
-    const [voteList, setVoteList] = useState<{ id: number; content: string }[]>([]);
-    const [votedIds, setVotedIds] = useState<number[]>([]);
+    const [voteList, setVoteList] = useState<{ id: string; text: string }[]>([]);
+    const [votedIds, setVotedIds] = useState<string[]>([]);
     const [isVoteFinished, setIsVoteFinished] = useState(false);
     const [isRolling, setIsRolling] = useState(false);
     const [currentTurnDeviceId, setCurrentTurnDeviceId] = useState<string | null>(null);
@@ -198,7 +198,7 @@ export default function PlayerRoomPage() {
         } catch (e) { showError(getErrorMessage(e)); }
     };
 
-    const handleVote = async (id: number) => {
+    const handleVote = async (id: string) => {
         if (isVoteFinished) return;
         setVotedIds(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
         await gameApi.marble.vote(roomId, id);
@@ -227,23 +227,32 @@ export default function PlayerRoomPage() {
     if (phase === 'LOBBY') return <div className="min-h-screen bg-black text-white p-6 flex justify-center items-center">대기 중...</div>;
     
     // --- [주루마블] ---
-    if (phase === 'SUBMIT') return (
-        <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center">
-            <h1 className="text-2xl font-bold mb-4">벌칙 제출</h1>
-            <input className="bg-gray-800 p-4 rounded-xl text-white mb-2 w-full" value={inputPenalty} onChange={e=>setInputPenalty(e.target.value)} />
-            <button onClick={handleSubmitPenalty} className="bg-purple-600 p-4 rounded-xl w-full font-bold">제출하기 ({myPenalties.length}/2)</button>
-            <div className="mt-4 w-full">
-                {myPenalties.map((p, i) => <div key={i} className="bg-gray-900 p-2 mb-1 rounded flex justify-between">{p} ✅</div>)}
+    if (phase === 'SUBMIT') {
+        const isLimitReached = myPenalties.length >= 2;
+        return (
+            <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center">
+                <h1 className="text-2xl font-bold mb-4">벌칙 제출</h1>
+                {isLimitReached ? (
+                    <p className="text-green-400 text-lg font-bold mb-4">제출 완료! 다른 사람을 기다려주세요.</p>
+                ) : (
+                    <>
+                        <input className="bg-gray-800 p-4 rounded-xl text-white mb-2 w-full" value={inputPenalty} onChange={e=>setInputPenalty(e.target.value)} placeholder="벌칙을 입력하세요" />
+                        <button onClick={handleSubmitPenalty} className="bg-purple-600 p-4 rounded-xl w-full font-bold">제출하기 ({myPenalties.length}/2)</button>
+                    </>
+                )}
+                <div className="mt-4 w-full">
+                    {myPenalties.map((p, i) => <div key={i} className="bg-gray-900 p-2 mb-1 rounded flex justify-between">{p} ✅</div>)}
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     if (phase === 'VOTE') return (
         <div className="min-h-screen bg-black text-white p-6">
             <h1 className="text-2xl font-bold mb-4">투표하기</h1>
             <div className="space-y-2 mb-20">
                 {voteList.map(v => (
-                    <div key={v.id} onClick={()=>handleVote(v.id)} className={`p-4 rounded-xl border ${votedIds.includes(v.id)?'bg-blue-600 border-blue-400':'bg-gray-800 border-gray-700'}`}>{v.content}</div>
+                    <div key={v.id} onClick={()=>handleVote(v.id)} className={`p-4 rounded-xl border ${votedIds.includes(v.id)?'bg-blue-600 border-blue-400':'bg-gray-800 border-gray-700'}`}>{v.text}</div>
                 ))}
             </div>
             <button onClick={handleFinishVoting} className="fixed bottom-6 w-[calc(100%-3rem)] left-6 bg-green-600 p-4 rounded-xl font-bold">투표 완료</button>
