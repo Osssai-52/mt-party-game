@@ -35,7 +35,9 @@ function PlayerJoinContent() {
         setIsLoading(true);
 
         try {
-            await gameApi.room.join({ roomId: roomCode, nickname });
+            const res = await gameApi.room.join({ roomId: roomCode, nickname });
+            const backendDeviceId = (res as any).data.deviceId;
+            localStorage.setItem('jurumarble_device_id', backendDeviceId);
             showSuccess('입장 성공!');
             router.push(`/player/${roomCode}?nickname=${nickname}`);
         } catch (e) {

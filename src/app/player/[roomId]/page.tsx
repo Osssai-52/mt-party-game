@@ -95,18 +95,7 @@ export default function PlayerRoomPage() {
     }, [roomId, deviceId]);
 
     useEffect(() => {
-        // 1. 방 입장 API 호출
-        const joinRoom = async () => {
-            try {
-                await gameApi.room.join({ roomId, nickname });
-                console.log(`입장 성공: ${nickname}`);
-            } catch (e) {
-                console.error("입장 실패", e);
-            }
-        };
-        joinRoom();
-
-        // 2. SSE 연결 (재연결 로직 포함)
+        // SSE 연결 (join은 이미 /player/join 페이지에서 완료됨)
         const eventSource = connectSSE();
 
         // [공통] 페이즈 변경 (게임 종류 전환 포함)
