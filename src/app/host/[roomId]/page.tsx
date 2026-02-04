@@ -13,6 +13,7 @@ import TruthBoard from '../../../components/TruthBoard';
 import QuizBoard from '../../../components/QuizBoard';
 // 라이어 게임 컴포넌트
 import LiarBoard from '../../../components/LiarBoard';
+import { API_BASE_URL } from '../../../services/api';
 
 import useMafiaHost from '../../../hooks/useMafiaHost'; 
 import useJuruHost from '../../../hooks/useJuruHost'; 
@@ -66,7 +67,7 @@ export default function LobbyPage() {
             localStorage.setItem('host_device_id', hostId);
         }
         
-        const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/sse/connect?roomId=${roomId}&sessionId=${hostId}`;
+        const sseUrl = `${API_BASE_URL}/sse/connect?roomId=${roomId}&sessionId=${hostId}`;
         const eventSource = new EventSource(sseUrl);
         eventSourceRef.current = eventSource;
 

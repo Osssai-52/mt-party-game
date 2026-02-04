@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import gameApi from '../../../services/gameApi';
-import { getErrorMessage } from '../../../services/api';
+import { getErrorMessage, API_BASE_URL } from '../../../services/api';
 import { useToast } from '../../../components/Toast';
 import MafiaController from '../../../components/MafiaController';
 import TruthController from '../../../components/TruthController';
@@ -72,7 +72,7 @@ export default function PlayerRoomPage() {
 
     // SSE 연결 함수 (재연결 지원)
     const connectSSE = useCallback(() => {
-        const sseUrl = `${process.env.NEXT_PUBLIC_API_URL}/sse/player/connect?roomId=${roomId}&deviceId=${deviceId}`;
+        const sseUrl = `${API_BASE_URL}/sse/player/connect?roomId=${roomId}&deviceId=${deviceId}`;
         const eventSource = new EventSource(sseUrl);
         eventSourceRef.current = eventSource;
 

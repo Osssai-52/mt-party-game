@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+// Nginx 리버스 프록시 경유 시 상대경로로 동작 (어떤 기기에서든 현재 호스트 기준)
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
