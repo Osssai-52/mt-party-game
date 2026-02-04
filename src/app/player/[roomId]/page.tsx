@@ -52,6 +52,15 @@ export default function PlayerRoomPage() {
     const [isRolling, setIsRolling] = useState(false);
     const [currentTurnDeviceId, setCurrentTurnDeviceId] = useState<string | null>(null);
 
+    // --- [팀짜기 State] ---
+    const [teamSubPhase, setTeamSubPhase] = useState<'WAITING' | 'ASSIGNED' | 'MANUAL_SELECT'>('WAITING');
+    const [myTeamName, setMyTeamName] = useState<string | null>(null);
+    const [myTeammates, setMyTeammates] = useState<string[]>([]);
+    const [manualTeamCount, setManualTeamCount] = useState(2);
+    const [manualMaxPerTeam, setManualMaxPerTeam] = useState(0);
+    const [manualTeamStatus, setManualTeamStatus] = useState<Record<string, string[]>>({});
+    const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+
     // --- [마피아 State] ---
     const [mafiaRole, setMafiaRole] = useState<MafiaRole>('CIVILIAN');
     const [mafiaPhase, setMafiaPhase] = useState<MafiaPhase>('NIGHT');
@@ -101,8 +110,14 @@ export default function PlayerRoomPage() {
         // [공통] 페이즈 변경 (게임 종류 전환 포함)
         eventSource.addEventListener('MARBLE_PHASE_CHANGE', (e) => {
             const data = JSON.parse(e.data);
-            setPhase(data.phase); // GAME, MAFIA_GAME, TRUTH_GAME 등
+            setPhase(data.phase);
             if (data.phase === 'VOTE') fetchVoteList();
+            if (data.phase === 'TEAM') {
+                setTeamSubPhase('WAITING');
+                setMyTeamName(null);
+                setMyTeammates([]);
+                setSelectedTeam(null);
+            }
         });
 
         // ---------------- [주루마블 이벤트] ----------------
@@ -110,6 +125,52 @@ export default function PlayerRoomPage() {
             const data = JSON.parse(e.data);
             setCurrentTurnDeviceId(data.currentDeviceId);
             setIsRolling(false);
+        });
+
+        // ---------------- [팀짜기 이벤트] ----------------
+        eventSource.addEventListener('TEAM_ASSIGNED', (e) => {
+            const data = JSON.parse(e.data);
+            // 내 팀 찾기
+            const myInfo = data.players?.find((p: any) => p.deviceId === deviceId);
+            if (myInfo) {
+                setMyTeamName(myInfo.team);
+                // 같은 팀원 닉네임 찾기
+                const teammates = data.players
+                    .filter((p: any) => p.team === myInfo.team && p.deviceId !== deviceId)
+                    .map((p: any) => p.nickname);
+                setMyTeammates(teammates);
+            }
+            setTeamSubPhase('ASSIGNED');
+            setSelectedTeam(null);
+        });
+
+        eventSource.addEventListener('TEAM_MANUAL_START', (e) => {
+            const data = JSON.parse(e.data);
+            setManualTeamCount(data.teamCount);
+            setManualMaxPerTeam(data.maxPerTeam);
+            setManualTeamStatus({});
+            setTeamSubPhase('MANUAL_SELECT');
+            setMyTeamName(null);
+            setMyTeammates([]);
+            setSelectedTeam(null);
+        });
+
+        eventSource.addEventListener('PLAYER_TEAM_SELECTED', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.teams) {
+                setManualTeamStatus(data.teams);
+            }
+            // 내가 선택한 경우
+            if (data.nickname && data.team) {
+                // 이 이벤트에서 내 정보를 다시 계산
+                const myTeam = Object.entries(data.teams || {}).find(
+                    ([_, members]) => (members as string[]).includes(nickname)
+                );
+                if (myTeam) {
+                    setMyTeamName(myTeam[0]);
+                    setMyTeammates((myTeam[1] as string[]).filter(n => n !== nickname));
+                }
+            }
         });
 
         // ---------------- [마피아 이벤트] ----------------
@@ -272,23 +333,107 @@ export default function PlayerRoomPage() {
     }
 
     if (phase === 'TEAM') {
-        const teamNames = ['A', 'B', 'C', 'D'].slice(0, 2);
-        const handleSelectTeam = async (teamName: string) => {
-            try {
-                await gameApi.team.selectTeam(roomId, deviceId, teamName);
-                showSuccess(`${teamName}팀 선택 완료!`);
-            } catch (e) { showError(getErrorMessage(e)); }
-        };
+        // 1) 대기 중 (호스트가 팀 방식을 결정하는 중)
+        if (teamSubPhase === 'WAITING') {
+            return (
+                <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
+                    <div className="text-6xl mb-6 animate-pulse">👥</div>
+                    <h1 className="text-3xl font-bold">팀 정하는 중...</h1>
+                    <p className="text-gray-400 mt-4">호스트가 팀을 구성하고 있습니다.</p>
+                </div>
+            );
+        }
+
+        // 2) 랜덤 배정 완료 → 내 팀 + 같은 팀원 표시
+        if (teamSubPhase === 'ASSIGNED' && myTeamName) {
+            return (
+                <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h1 className="text-4xl font-black text-yellow-400 mb-6">{myTeamName}팀</h1>
+                    <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700">
+                        <h2 className="text-lg font-bold text-gray-300 mb-3">같은 팀원</h2>
+                        <div className="space-y-2">
+                            {myTeammates.map((name, i) => (
+                                <div key={i} className="bg-gray-700 px-4 py-2 rounded-xl text-white font-bold">{name}</div>
+                            ))}
+                            {myTeammates.length === 0 && (
+                                <p className="text-gray-500">나 혼자입니다!</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 3) 수동 선택 모드
+        if (teamSubPhase === 'MANUAL_SELECT') {
+            const teamNames = Array.from({ length: manualTeamCount }, (_, i) => (i + 1).toString());
+
+            const handleSelectTeam = async (teamName: string) => {
+                try {
+                    await gameApi.team.selectTeam(roomId, deviceId, teamName, manualTeamCount);
+                    setSelectedTeam(teamName);
+                    showSuccess(`${teamName}팀 선택 완료!`);
+                } catch (e) { showError(getErrorMessage(e)); }
+            };
+
+            // 이미 팀을 선택한 경우
+            if (selectedTeam) {
+                return (
+                    <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
+                        <div className="text-6xl mb-4">✅</div>
+                        <h1 className="text-3xl font-bold text-green-400 mb-2">{selectedTeam}팀 선택 완료!</h1>
+                        <p className="text-gray-400">다른 플레이어를 기다려주세요.</p>
+                        {myTeammates.length > 0 && (
+                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700 mt-6">
+                                <h2 className="text-lg font-bold text-gray-300 mb-3">같은 팀원</h2>
+                                <div className="space-y-2">
+                                    {myTeammates.map((name, i) => (
+                                        <div key={i} className="bg-gray-700 px-4 py-2 rounded-xl text-white font-bold">{name}</div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
+                    <h1 className="text-3xl font-bold mb-2">원하는 팀을 선택하세요!</h1>
+                    <p className="text-gray-400 mb-8 text-sm">팀당 최대 {manualMaxPerTeam}명 (선착순)</p>
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                        {teamNames.map(name => {
+                            const members = manualTeamStatus[name] || [];
+                            const isFull = members.length >= manualMaxPerTeam;
+                            return (
+                                <button
+                                    key={name}
+                                    onClick={() => !isFull && handleSelectTeam(name)}
+                                    disabled={isFull}
+                                    className={`py-10 rounded-2xl text-2xl font-black transition border-2 ${
+                                        isFull
+                                            ? 'bg-gray-900 border-gray-700 text-gray-600 cursor-not-allowed'
+                                            : 'bg-gray-800 border-purple-500 hover:bg-purple-600'
+                                    }`}
+                                >
+                                    {name}팀
+                                    <div className="text-sm font-normal mt-1 text-gray-400">
+                                        {members.length}/{manualMaxPerTeam}명
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        // fallback
         return (
             <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
-                <h1 className="text-3xl font-bold mb-8">원하는 팀을 선택하세요! 👥</h1>
-                <div className="grid grid-cols-2 gap-4 w-full">
-                    {teamNames.map(name => (
-                        <button key={name} onClick={() => handleSelectTeam(name)} className="py-10 bg-gray-800 border-2 border-purple-500 rounded-2xl text-2xl font-black hover:bg-purple-600 transition">
-                            {name} 팀
-                        </button>
-                    ))}
-                </div>
+                <div className="text-6xl mb-6 animate-pulse">👥</div>
+                <h1 className="text-3xl font-bold">팀 정하는 중...</h1>
             </div>
         );
     }

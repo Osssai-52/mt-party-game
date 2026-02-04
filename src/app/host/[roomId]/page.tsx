@@ -329,10 +329,9 @@ export default function LobbyPage() {
                                     TEAM BUILDING
                                 </h2>
                                 <div className="flex bg-gray-800 p-1 rounded-xl">
-                                    {(['RANDOM', 'LADDER', 'MANUAL'] as const).map((method) => (
+                                    {(['RANDOM', 'MANUAL'] as const).map((method) => (
                                         <button key={method} onClick={() => juru.setAssignMethod(method)} className={`px-6 py-2 rounded-lg font-bold transition-all ${juru.assignMethod === method ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
                                             {method === 'RANDOM' && '🎲 랜덤 배정'}
-                                            {method === 'LADDER' && '🪜 사다리 타기'}
                                             {method === 'MANUAL' && '👆 수동 선택'}
                                         </button>
                                     ))}
@@ -350,13 +349,9 @@ export default function LobbyPage() {
                                     {juru.assignMethod === 'RANDOM' && (
                                         <div className="text-center animate-fadeIn">
                                             <p className="text-gray-400 mb-4 text-sm">"전체 인원을 무작위로 섞어서<br/>{juru.teamCount}개 팀에 균등하게 배정합니다."</p>
-                                            <button onClick={juru.handleDivideRandom} className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">🎲 랜덤 섞기 시작!</button>
-                                        </div>
-                                    )}
-                                    {juru.assignMethod === 'LADDER' && (
-                                        <div className="text-center animate-fadeIn">
-                                            <p className="text-gray-400 mb-4 text-sm">"사다리 타기 알고리즘을 이용해<br/>운명적인 팀을 결정합니다."</p>
-                                            <button onClick={juru.handleDivideLadder} className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">🪜 사다리 타기 시작!</button>
+                                            <button onClick={juru.handleDivideRandom} className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">
+                                                {juru.teamResult ? '🔄 리롤' : '🎲 랜덤 섞기 시작!'}
+                                            </button>
                                         </div>
                                     )}
                                     {juru.assignMethod === 'MANUAL' && (

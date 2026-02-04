@@ -65,17 +65,13 @@ export const gameApi = {
         divideRandom: (roomId: string, teamCount: number) =>
             api.post('/teams/random', { roomId, teamCount }),
 
-        // 사다리타기 팀 배정
-        divideLadder: (roomId: string, teamCount: number) =>
-            api.post('/teams/ladder', { roomId, teamCount }),
-
         // 수동 팀 선택
-        selectTeam: (roomId: string, deviceId: string, teamName: string) =>
-            api.post('/teams/select', { roomId, deviceId, teamName }),
+        selectTeam: (roomId: string, deviceId: string, teamName: string, teamCount: number) =>
+            api.post('/teams/select', { roomId, deviceId, teamName, teamCount }),
 
-        // 팀 초기화 및 상태 조회
-        resetTeams: (roomId: string) =>
-            api.post('/teams/reset', { roomId }),
+        // 팀 초기화 (수동 선택 모드 시작)
+        resetTeams: (roomId: string, teamCount: number) =>
+            api.post('/teams/reset', { roomId, teamCount }),
 
         getTeamStatus: (roomId: string) =>
             api.get(`/teams/status/${roomId}`),

@@ -30,8 +30,8 @@ export default function useJuruHost(
     const [teamResult, setTeamResult] = useState<Record<string, GamePlayer[]> | null>(null);
     const [currentTurnDeviceId, setCurrentTurnDeviceId] = useState<string | null>(null);
 
-    // ✨ [추가] 팀 배정 방식 선택 상태 ('RANDOM' | 'LADDER' | 'MANUAL')
-    const [assignMethod, setAssignMethod] = useState<'RANDOM' | 'LADDER' | 'MANUAL'>('RANDOM');
+    // 팀 배정 방식 선택 상태
+    const [assignMethod, setAssignMethod] = useState<'RANDOM' | 'MANUAL'>('RANDOM');
 
     // UI State
     const [activePenaltyText, setActivePenaltyText] = useState<string | null>(null);
@@ -66,26 +66,16 @@ export default function useJuruHost(
         } catch (e) { console.error("랜덤 팀 배정 실패", e); }
     };
 
-    // 2-2. [사다리] 팀 배정
-    const handleDivideLadder = async () => {
-        try {
-            // POST /api/v1/teams/ladder
-            const res = await gameApi.team.divideLadder(roomId, teamCount);
-            setTeamResult((res as any).teams);
-        } catch (e) { console.error("사다리타기 실패", e); }
-    };
-
-    // 2-3. [수동] 수동 모드 시작 (팀 초기화)
+    // 2-2. [수동] 수동 모드 시작 (팀 초기화)
     const handleManualMode = async () => {
         if (!confirm("현재 팀 배정을 초기화하고, 플레이어 선택 모드로 전환할까요?")) return;
         try {
-            // POST /api/v1/teams/reset
-            await gameApi.team.resetTeams(roomId);
-            setTeamResult(null); // 프론트 상태 초기화 -> 플레이어 화면에 선택 버튼 활성화됨
+            await gameApi.team.resetTeams(roomId, teamCount);
+            setTeamResult(null);
         } catch (e) { console.error("팀 초기화 실패", e); }
     };
 
-    // 2-4. [조회] 현재 팀 상태 불러오기 (수동 선택 시 실시간 현황 확인용)
+    // 2-3. [조회] 현재 팀 상태 불러오기 (수동 선택 시 실시간 현황 확인용)
     const fetchTeamStatus = async () => {
         try {
             const res = await gameApi.team.getTeamStatus(roomId);
@@ -181,12 +171,26 @@ export default function useJuruHost(
         eventSource.addEventListener('MARBLE_TURN_CHANGE', onTurnChange);
         eventSource.addEventListener('MARBLE_DICE_ROLLED', onDiceRolled);
 
-        // 🌟 [추가] 실시간 팀 상태 변경 감지
+        // 실시간 팀 상태 변경 감지
         const onTeamUpdate = (e: MessageEvent) => {
             const data = JSON.parse(e.data);
             if (data.teams) setTeamResult(data.teams);
         };
         eventSource.addEventListener('TEAM_UPDATE', onTeamUpdate);
+        eventSource.addEventListener('PLAYER_TEAM_SELECTED', onTeamUpdate);
+
+        // 팀 배정 완료 (랜덤)
+        const onTeamAssigned = (e: MessageEvent) => {
+            const data = JSON.parse(e.data);
+            if (data.teams) setTeamResult(data.teams);
+        };
+        eventSource.addEventListener('TEAM_ASSIGNED', onTeamAssigned);
+
+        // 수동 선택 모드 시작
+        const onManualStart = () => {
+            setTeamResult(null);
+        };
+        eventSource.addEventListener('TEAM_MANUAL_START', onManualStart);
 
         const onPlayerVoteDone = (e: MessageEvent) => {
             const data = JSON.parse(e.data);
@@ -200,6 +204,9 @@ export default function useJuruHost(
             eventSource.removeEventListener('MARBLE_TURN_CHANGE', onTurnChange);
             eventSource.removeEventListener('MARBLE_DICE_ROLLED', onDiceRolled);
             eventSource.removeEventListener('TEAM_UPDATE', onTeamUpdate);
+            eventSource.removeEventListener('PLAYER_TEAM_SELECTED', onTeamUpdate);
+            eventSource.removeEventListener('TEAM_ASSIGNED', onTeamAssigned);
+            eventSource.removeEventListener('TEAM_MANUAL_START', onManualStart);
             eventSource.removeEventListener('MARBLE_PLAYER_VOTE_DONE', onPlayerVoteDone);
         };
     }, [eventSource, finalPenalties, teamResult]); 
@@ -228,8 +235,7 @@ export default function useJuruHost(
         console.log("✅ [TEST] 가짜 플레이어 & 벌칙 생성 완료");
     };
 
-    // 🌟 [추가] 가짜 팀 배정 시뮬레이션
-    const handleTestTeamBuilding = (method: 'RANDOM' | 'LADDER' | 'MANUAL') => {
+    const handleTestTeamBuilding = (method: 'RANDOM' | 'MANUAL') => {
         if (players.length === 0) {
             alert("먼저 '1. 가짜 참가자 생성' 버튼을 눌러주세요!");
             return;
@@ -242,7 +248,7 @@ export default function useJuruHost(
             setTeamResult(null);
             console.log("-> 팀 초기화 완료 (수동 모드)");
         } else {
-            // 랜덤/사다리: 그냥 무작위로 섞어서 팀 갯수만큼 나눔
+            // 랜덤: 무작위로 섞어서 팀 갯수만큼 나눔
             const shuffled = [...players].sort(() => Math.random() - 0.5);
             const teams: Record<string, GamePlayer[]> = {};
             const teamNames = ['A팀', 'B팀', 'C팀', 'D팀', 'E팀'];
@@ -359,11 +365,10 @@ export default function useJuruHost(
         // Handlers
         handleFinishVote,
         
-        // 🌟 수정된 3가지 배정 방식 핸들러
-        handleDivideRandom, 
-        handleDivideLadder, 
-        handleManualMode,   
-        fetchTeamStatus,    
+        // 팀 배정 방식 핸들러
+        handleDivideRandom,
+        handleManualMode,
+        fetchTeamStatus,
 
         handleStartGame,
 
