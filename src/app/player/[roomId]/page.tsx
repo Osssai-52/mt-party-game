@@ -18,7 +18,7 @@ type GamePhase =
     | 'LOBBY' | 'SUBMIT' | 'VOTE' | 'TEAM' | 'GAME' // 주루마블
     | 'MAFIA_GAME' // 마피아
     | 'TRUTH_GAME' // 진실게임 
-    | 'QUIZ_GAME'; // 몸으로 말해요/고요 속의 외침
+    | 'QUIZ_GAME' // 몸으로 말해요/고요 속의 외침
     | 'LIAR_GAME'; // 라이어게임
 
 const getDeviceId = () => {
