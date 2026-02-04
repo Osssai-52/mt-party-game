@@ -338,13 +338,13 @@ export default function LobbyPage() {
                                     {juru.assignMethod === 'RANDOM' && (
                                         <div className="text-center animate-fadeIn">
                                             <p className="text-gray-400 mb-4 text-sm">"전체 인원을 무작위로 섞어서<br/>{juru.teamCount}개 팀에 균등하게 배정합니다."</p>
-                                            <button onClick={juru.handleDivideTeamsRandom} className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">🎲 랜덤 섞기 시작!</button>
+                                            <button onClick={juru.handleDivideRandom} className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">🎲 랜덤 섞기 시작!</button>
                                         </div>
                                     )}
                                     {juru.assignMethod === 'LADDER' && (
                                         <div className="text-center animate-fadeIn">
                                             <p className="text-gray-400 mb-4 text-sm">"사다리 타기 알고리즘을 이용해<br/>운명적인 팀을 결정합니다."</p>
-                                            <button onClick={juru.handleDivideTeamsLadder} className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">🪜 사다리 타기 시작!</button>
+                                            <button onClick={juru.handleDivideLadder} className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">🪜 사다리 타기 시작!</button>
                                         </div>
                                     )}
                                     {juru.assignMethod === 'MANUAL' && (

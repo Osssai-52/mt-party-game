@@ -59,7 +59,7 @@ export default function useJuruHost(
         try {
             // POST /api/v1/teams/random
             const res = await gameApi.team.divideRandom(roomId, teamCount);
-            setTeamResult(res.teams);
+            setTeamResult(res.data.teams);
         } catch (e) { console.error("랜덤 팀 배정 실패", e); }
     };
 
@@ -68,7 +68,7 @@ export default function useJuruHost(
         try {
             // POST /api/v1/teams/ladder
             const res = await gameApi.team.divideLadder(roomId, teamCount);
-            setTeamResult(res.teams);
+            setTeamResult(res.data.teams);
         } catch (e) { console.error("사다리타기 실패", e); }
     };
 
@@ -86,7 +86,7 @@ export default function useJuruHost(
     const fetchTeamStatus = async () => {
         try {
             const res = await gameApi.team.getTeamStatus(roomId);
-            setTeamResult(res.teams);
+            setTeamResult(res.data.teams);
         } catch (e) { console.error("팀 상태 조회 실패", e); }
     };
     // ============================================================
@@ -96,7 +96,7 @@ export default function useJuruHost(
     const handleStartGame = async () => {
         try {
             const res = await gameApi.marble.init(roomId);
-            setFinalPenalties(res.penalties);
+            setFinalPenalties(res.data.penalties);
             // 로비에 있던 플레이어들을 게임 플레이어로 초기화
             setPlayers(lobbyPlayers); 
             await changePhaseOnly('GAME');
