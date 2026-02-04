@@ -71,12 +71,16 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
     const initGame = async () => {
         try {
             const catRes = await gameApi.quiz.getCategories();
-            setCategories(catRes.data || []);
+            // 백엔드가 categoryId로 보내므로 id로 매핑
+            const mapped = (catRes.data || []).map((c: any) => ({
+                id: c.categoryId ?? c.id,
+                name: c.name
+            }));
+            setCategories(mapped);
             await gameApi.quiz.init(roomId);
             setPhase('WAITING');
-        } catch (e) { 
-            // 🌟 여기서 에러가 나면 바로 테스트 모드로 전환!
-            runTestInit(); 
+        } catch (e) {
+            runTestInit();
         }
     };
 
@@ -113,20 +117,50 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
 
         eventSource.addEventListener('QUIZ_TIMER', (e: any) => {
             const data = JSON.parse(e.data);
-            setGameState(prev => ({ ...prev, remainingSeconds: data.timer }));
+            setGameState(prev => ({
+                ...prev,
+                remainingSeconds: data.remaining,
+                currentWord: data.currentWord || prev.currentWord,
+                score: { ...prev.score, ...(prev.currentTeam ? { [prev.currentTeam]: data.currentScore } : {}) }
+            }));
         });
 
-        eventSource.addEventListener('QUIZ_NEXT', (e: any) => {
+        eventSource.addEventListener('QUIZ_ROUND_START', (e: any) => {
             const data = JSON.parse(e.data);
-            setGameState(prev => ({ 
-                ...prev, 
-                currentWord: data.word, 
-                score: data.score || prev.score 
+            setGameState(prev => ({
+                ...prev,
+                currentWord: data.currentWord,
+                currentTeam: data.team,
+                remainingSeconds: data.timer,
+                score: { ...prev.score }
             }));
             setPhase('PLAYING');
         });
 
-        eventSource.addEventListener('QUIZ_ROUND_END', () => setPhase('ROUND_END'));
+        eventSource.addEventListener('QUIZ_CORRECT', (e: any) => {
+            const data = JSON.parse(e.data);
+            setGameState(prev => ({
+                ...prev,
+                currentWord: data.currentWord,
+                score: { ...prev.score, ...(data.team ? { [data.team]: data.currentScore } : {}) }
+            }));
+        });
+
+        eventSource.addEventListener('QUIZ_PASS', (e: any) => {
+            const data = JSON.parse(e.data);
+            setGameState(prev => ({
+                ...prev,
+                currentWord: data.currentWord
+            }));
+        });
+
+        eventSource.addEventListener('QUIZ_ROUND_END', (e: any) => {
+            const data = e.data ? JSON.parse(e.data) : {};
+            if (data.allScores) {
+                setGameState(prev => ({ ...prev, score: data.allScores }));
+            }
+            setPhase('ROUND_END');
+        });
 
         eventSource.addEventListener('QUIZ_FINISHED', async () => {
             setPhase('FINISHED');

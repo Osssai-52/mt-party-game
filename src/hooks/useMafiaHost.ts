@@ -41,7 +41,7 @@ export default function useMafiaHost(roomId: string, players: any[], eventSource
         // 1. 타이머
         eventSource.addEventListener('MAFIA_TIMER', (e: any) => {
             const data = JSON.parse(e.data);
-            setTimer(data.timer);
+            setTimer(data.remaining);
         });
 
         // 2. 밤

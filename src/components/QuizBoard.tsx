@@ -7,13 +7,15 @@ interface QuizBoardProps {
     phase: QuizPhase;
     gameState: QuizState;
     categories: QuizCategory[];
-    ranking?: Record<string, number> | null; // ✨ 랭킹 데이터 props 추가
+    ranking?: Record<string, number> | null;
     onStartRound: (catId: number) => void;
     onNextTeam: () => void;
     onEndGame: () => void;
+    onCorrect?: () => void;
+    onPass?: () => void;
 }
 
-export default function QuizBoard({ phase, gameState, categories, ranking, onStartRound, onNextTeam, onEndGame }: QuizBoardProps) {
+export default function QuizBoard({ phase, gameState, categories, ranking, onStartRound, onNextTeam, onEndGame, onCorrect, onPass }: QuizBoardProps) {
 
     // 1. 대기 화면 (카테고리 선택)
     if (phase === 'WAITING') {
@@ -59,12 +61,32 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
                     </motion.div>
                 </div>
 
-                <div className="w-full flex justify-center gap-12 text-3xl font-bold border-t-2 border-gray-200 pt-6">
-                    {Object.entries(gameState.score).map(([team, score]) => (
-                        <div key={team} className={team === gameState.currentTeam ? 'text-blue-600' : 'text-gray-400'}>
-                            {team}팀 : {score}점
-                        </div>
-                    ))}
+                <div className="w-full flex items-center justify-between border-t-2 border-gray-200 pt-6 px-4">
+                    <div className="flex gap-12 text-3xl font-bold">
+                        {Object.entries(gameState.score).map(([team, score]) => (
+                            <div key={team} className={team === gameState.currentTeam ? 'text-blue-600' : 'text-gray-400'}>
+                                {team}팀 : {score}점
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex gap-4">
+                        {onCorrect && (
+                            <button
+                                onClick={onCorrect}
+                                className="px-10 py-4 bg-green-500 text-white rounded-2xl text-3xl font-black shadow-lg hover:bg-green-400 active:scale-95 transition"
+                            >
+                                ⭕ 정답
+                            </button>
+                        )}
+                        {onPass && (
+                            <button
+                                onClick={onPass}
+                                className="px-10 py-4 bg-red-500 text-white rounded-2xl text-3xl font-black shadow-lg hover:bg-red-400 active:scale-95 transition"
+                            >
+                                ❌ PASS
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         );

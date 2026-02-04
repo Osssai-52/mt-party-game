@@ -448,7 +448,7 @@ export default function LobbyPage() {
 
                 {/* --- 🙆‍♂️ 몸으로 말해요 UI --- */}
                 {gameType === 'SPEED_QUIZ' && commonPhase === 'QUIZ_GAME' && (
-                    <QuizBoard 
+                    <QuizBoard
                         phase={quiz.phase}
                         gameState={quiz.gameState}
                         categories={quiz.categories}
@@ -456,6 +456,8 @@ export default function LobbyPage() {
                         onStartRound={quiz.actions.startRound}
                         onNextTeam={quiz.actions.handleNextTeam}
                         onEndGame={quiz.actions.handleEndGame}
+                        onCorrect={() => gameApi.quiz.correct(roomId).catch(() => {})}
+                        onPass={() => gameApi.quiz.pass(roomId).catch(() => {})}
                     />
                 )}
 
