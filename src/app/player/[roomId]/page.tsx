@@ -201,7 +201,7 @@ export default function PlayerRoomPage() {
     const handleVote = async (id: string) => {
         if (isVoteFinished) return;
         setVotedIds(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
-        await gameApi.marble.vote(roomId, id);
+        await gameApi.marble.vote(roomId, deviceId, id);
     };
 
     const handleFinishVoting = async () => {

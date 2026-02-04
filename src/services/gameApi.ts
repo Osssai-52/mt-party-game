@@ -33,8 +33,8 @@ export const gameApi = {
         getVotePenalties: (roomId: string) => 
             api.get(`/games/marble/vote/penalties/${roomId}`),
 
-        vote: (roomId: string, penaltyId: string | number) => 
-            api.post('/games/marble/vote', { roomId, penaltyId }),
+        vote: (roomId: string, deviceId: string, penaltyId: string | number) =>
+            api.post('/games/marble/vote', { roomId, deviceId, penaltyId }),
 
         getVoteStatus: (roomId: string) => 
             api.get(`/games/marble/vote/status/${roomId}`),
