@@ -34,10 +34,10 @@ export default function GameSelectPage() {
             {/* 배경 효과 */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-800 via-black to-black opacity-50 z-0" />
             
-            {/* 1. 메인 타이틀 (Jjam!) */}
+            {/* 1. 메인 타이틀 (Jjan!) */}
             <div className="z-20 text-center mb-10">
                 <h1 className="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 drop-shadow-[0_0_20px_rgba(255,165,0,0.6)] tracking-tighter animate-pulse font-hand">
-                    Jjam!
+                    Jjan!
                 </h1>
                 <p className="text-gray-400 text-lg mt-2 font-bold tracking-widest uppercase">
                     Premium Party Game Suite
