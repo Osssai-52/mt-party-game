@@ -39,7 +39,10 @@ export const gameApi = {
         getVoteStatus: (roomId: string) => 
             api.get(`/games/marble/vote/status/${roomId}`),
 
-        finishVote: (roomId: string) => 
+        voteDone: (roomId: string, deviceId: string) =>
+            api.post('/games/marble/vote/done', { roomId, deviceId }),
+
+        finishVote: (roomId: string) =>
             api.post('/games/marble/vote/finish', { roomId }),
 
         // [Phase 3] 게임판 생성

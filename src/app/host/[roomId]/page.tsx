@@ -316,6 +316,7 @@ export default function LobbyPage() {
                         {commonPhase === 'VOTE' && (
                             <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
                                 <h2 className="text-4xl font-black mb-4">🗳️ 투표 진행 중...</h2>
+                                <p className="text-xl text-gray-300">투표 완료: {juru.voteDoneCount} / {juru.totalVoters} 명</p>
                                 <button onClick={juru.handleFinishVote} className="bg-purple-600 px-12 py-4 rounded-full text-2xl font-bold shadow-lg">
                                     투표 마감 & 팀 편성하기 👥
                                 </button>

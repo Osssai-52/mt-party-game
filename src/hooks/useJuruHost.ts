@@ -23,6 +23,8 @@ export default function useJuruHost(
     const [players, setPlayers] = useState<GamePlayer[]>([]); // 게임 진행 중인 플레이어들
     const [penaltyCount, setPenaltyCount] = useState(0);
     const [expectedPenaltyCount, setExpectedPenaltyCount] = useState(0);
+    const [voteDoneCount, setVoteDoneCount] = useState(0);
+    const [totalVoters, setTotalVoters] = useState(0);
     const [finalPenalties, setFinalPenalties] = useState<{ text: string }[]>([]);
     const [teamCount, setTeamCount] = useState(2);
     const [teamResult, setTeamResult] = useState<Record<string, GamePlayer[]> | null>(null);
@@ -186,11 +188,19 @@ export default function useJuruHost(
         };
         eventSource.addEventListener('TEAM_UPDATE', onTeamUpdate);
 
+        const onPlayerVoteDone = (e: MessageEvent) => {
+            const data = JSON.parse(e.data);
+            setVoteDoneCount(data.doneCount);
+            setTotalVoters(data.totalPlayers);
+        };
+        eventSource.addEventListener('MARBLE_PLAYER_VOTE_DONE', onPlayerVoteDone);
+
         return () => {
             eventSource.removeEventListener('MARBLE_PENALTY_SUBMITTED', onPenaltySubmitted);
             eventSource.removeEventListener('MARBLE_TURN_CHANGE', onTurnChange);
             eventSource.removeEventListener('MARBLE_DICE_ROLLED', onDiceRolled);
             eventSource.removeEventListener('TEAM_UPDATE', onTeamUpdate);
+            eventSource.removeEventListener('MARBLE_PLAYER_VOTE_DONE', onPlayerVoteDone);
         };
     }, [eventSource, finalPenalties, teamResult]); 
 
@@ -330,6 +340,8 @@ export default function useJuruHost(
         setPlayers, 
         penaltyCount,
         expectedPenaltyCount,
+        voteDoneCount,
+        totalVoters,
         finalPenalties,
         teamCount, setTeamCount,
         teamResult,

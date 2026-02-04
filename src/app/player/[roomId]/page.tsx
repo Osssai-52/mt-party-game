@@ -206,8 +206,10 @@ export default function PlayerRoomPage() {
 
     const handleFinishVoting = async () => {
         if (votedIds.length === 0 && !confirm("투표 안 해?")) return;
-        setIsVoteFinished(true);
-        await gameApi.marble.finishVote(roomId);
+        try {
+            await gameApi.marble.voteDone(roomId, deviceId);
+            setIsVoteFinished(true);
+        } catch (e) { showError(getErrorMessage(e)); }
     };
 
     const handleRollDice = async () => {
@@ -247,17 +249,27 @@ export default function PlayerRoomPage() {
         );
     }
 
-    if (phase === 'VOTE') return (
-        <div className="min-h-screen bg-black text-white p-6">
-            <h1 className="text-2xl font-bold mb-4">투표하기</h1>
-            <div className="space-y-2 mb-20">
-                {voteList.map(v => (
-                    <div key={v.id} onClick={()=>handleVote(v.id)} className={`p-4 rounded-xl border ${votedIds.includes(v.id)?'bg-blue-600 border-blue-400':'bg-gray-800 border-gray-700'}`}>{v.text}</div>
-                ))}
+    if (phase === 'VOTE') {
+        if (isVoteFinished) {
+            return (
+                <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
+                    <p className="text-green-400 text-2xl font-bold">투표 완료!</p>
+                    <p className="text-gray-400 mt-2">다른 사람들을 기다려주세요.</p>
+                </div>
+            );
+        }
+        return (
+            <div className="min-h-screen bg-black text-white p-6">
+                <h1 className="text-2xl font-bold mb-4">투표하기</h1>
+                <div className="space-y-2 mb-20">
+                    {voteList.map(v => (
+                        <div key={v.id} onClick={()=>handleVote(v.id)} className={`p-4 rounded-xl border ${votedIds.includes(v.id)?'bg-blue-600 border-blue-400':'bg-gray-800 border-gray-700'}`}>{v.text}</div>
+                    ))}
+                </div>
+                <button onClick={handleFinishVoting} className="fixed bottom-6 w-[calc(100%-3rem)] left-6 bg-green-600 p-4 rounded-xl font-bold">투표 완료</button>
             </div>
-            <button onClick={handleFinishVoting} className="fixed bottom-6 w-[calc(100%-3rem)] left-6 bg-green-600 p-4 rounded-xl font-bold">투표 완료</button>
-        </div>
-    );
+        );
+    }
 
     if (phase === 'TEAM') {
         const teamNames = ['A', 'B', 'C', 'D'].slice(0, 2);
