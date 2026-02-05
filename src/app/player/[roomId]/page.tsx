@@ -70,6 +70,7 @@ export default function PlayerRoomPage() {
     // --- [진실게임 State] ---
     const [truthPhase, setTruthPhase] = useState<TruthPhase>('SELECT_ANSWERER');
     const [truthQuestionList, setTruthQuestionList] = useState<{index: number, question: string}[]>([]);
+    const [truthAnswererDeviceId, setTruthAnswererDeviceId] = useState<string | null>(null);
 
     // --- [몸으로 말해요 State] ---
     const [quizPhase, setQuizPhase] = useState<string>('WAITING');
@@ -223,6 +224,7 @@ export default function PlayerRoomPage() {
         eventSource.addEventListener('TRUTH_ANSWERER_SELECTED', (e) => {
             const data = JSON.parse(e.data);
             if (data.phase) setTruthPhase(data.phase);
+            if (data.answerer?.deviceId) setTruthAnswererDeviceId(data.answerer.deviceId);
             setPhase('TRUTH_GAME');
         });
 
@@ -246,6 +248,7 @@ export default function PlayerRoomPage() {
             const data = JSON.parse(e.data);
             if (data.phase) setTruthPhase(data.phase);
             setTruthQuestionList([]);
+            setTruthAnswererDeviceId(null);
         });
 
         // ---------------- [몸으로 말해요 이벤트] ----------------
@@ -513,6 +516,7 @@ export default function PlayerRoomPage() {
                     deviceId={deviceId}
                     phase={truthPhase}
                     questionList={truthQuestionList}
+                    answererDeviceId={truthAnswererDeviceId}
                 />
             </div>
         );

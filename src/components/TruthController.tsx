@@ -14,9 +14,11 @@ interface TruthControllerProps {
     deviceId: string;
     phase: TruthPhase;
     questionList?: QuestionItem[];
+    answererDeviceId?: string | null;
 }
 
-export default function TruthController({ roomId, deviceId, phase, questionList = [] }: TruthControllerProps) {
+export default function TruthController({ roomId, deviceId, phase, questionList = [], answererDeviceId }: TruthControllerProps) {
+    const isAnswerer = deviceId === answererDeviceId;
     const [questionInput, setQuestionInput] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [votedIndices, setVotedIndices] = useState<number[]>([]);
@@ -69,6 +71,18 @@ export default function TruthController({ roomId, deviceId, phase, questionList 
     const sendReaction = async (type: 'FIREWORK' | 'BOO' | 'ANGRY') => {
         try { await gameApi.common.sendReaction({ roomId, type }); } catch (e) {}
     };
+
+    // 0. 답변자는 질문 수합/투표에 참여하지 않음
+    if (isAnswerer && (phase === 'SUBMIT_QUESTIONS' || phase === 'SELECT_QUESTION')) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 animate-fadeIn">
+                <div className="text-6xl mb-4">🎤</div>
+                <h2 className="text-2xl font-bold text-white mb-2">당신은 답변자입니다!</h2>
+                <p className="text-gray-400 mt-2">다른 플레이어들이 질문을 준비하고 있습니다.</p>
+                <p className="text-gray-500 text-sm mt-4">잠시만 기다려주세요...</p>
+            </div>
+        );
+    }
 
     // 1. 질문 제출 단계
     if (phase === 'SUBMIT_QUESTIONS') {
