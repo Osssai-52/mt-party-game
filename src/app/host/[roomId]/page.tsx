@@ -16,8 +16,8 @@ import LiarBoard from '../../../components/LiarBoard';
 import { API_BASE_URL } from '../../../services/api';
 import gameApi from '../../../services/gameApi';
 
-import useMafiaHost from '../../../hooks/useMafiaHost'; 
-import useJuruHost from '../../../hooks/useJuruHost'; 
+import useMafiaHost from '../../../hooks/useMafiaHost';
+import useJuruHost from '../../../hooks/useJuruHost';
 import useTruthHost from '../../../hooks/useTruthHost';
 import useQuizHost from '../../../hooks/useQuizHost';
 // 라이어 게임 훅
@@ -32,37 +32,37 @@ interface GamePlayer {
     profileImage: string | null;
     deviceId: string;
     submittedCount: number;
-    isVoteFinished?: boolean; 
+    isVoteFinished?: boolean;
 }
 
 // [스타일링] 게임별 테마 색상 매핑
 const THEME_STYLES: Record<string, { border: string; button: string; text: string; gradient: string }> = {
-    JURUMARBLE: { 
-        border: 'border-orange-500', 
+    JURUMARBLE: {
+        border: 'border-orange-500',
         button: 'bg-orange-600 hover:bg-orange-500',
         text: 'text-orange-500',
-        gradient: 'from-orange-600 to-orange-400' 
+        gradient: 'from-orange-600 to-orange-400'
     },
-    MAFIA: { 
-        border: 'border-red-600', 
+    MAFIA: {
+        border: 'border-red-600',
         button: 'bg-red-600 hover:bg-red-500',
         text: 'text-red-600',
         gradient: 'from-red-700 to-red-500'
     },
-    TRUTH: { 
-        border: 'border-pink-500', 
+    TRUTH: {
+        border: 'border-pink-500',
         button: 'bg-pink-600 hover:bg-pink-500',
         text: 'text-pink-500',
         gradient: 'from-pink-600 to-purple-500'
     },
-    SPEED_QUIZ: { 
-        border: 'border-blue-500', 
+    SPEED_QUIZ: {
+        border: 'border-blue-500',
         button: 'bg-blue-600 hover:bg-blue-500',
         text: 'text-blue-500',
         gradient: 'from-blue-600 to-cyan-500'
     },
-    LIAR: { 
-        border: 'border-green-500', 
+    LIAR: {
+        border: 'border-green-500',
         button: 'bg-green-600 hover:bg-green-500',
         text: 'text-green-500',
         gradient: 'from-green-600 to-emerald-500'
@@ -79,8 +79,8 @@ export default function LobbyPage() {
 
     // --- 공통 상태 (로비 대기용) ---
     const [players, setPlayers] = useState<GamePlayer[]>([]);
-    const [commonPhase, setCommonPhase] = useState('LOBBY'); 
-    
+    const [commonPhase, setCommonPhase] = useState('LOBBY');
+
     // SSE 연결 (공통)
     const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -88,7 +88,7 @@ export default function LobbyPage() {
     const juru = useJuruHost(roomId, players, eventSourceRef.current);
     const mafia = useMafiaHost(roomId, players, eventSourceRef.current);
     const truth = useTruthHost(roomId, players, eventSourceRef.current);
-    const quiz = useQuizHost(roomId, eventSourceRef.current); 
+    const quiz = useQuizHost(roomId, eventSourceRef.current);
     const liar = useLiarHost(roomId, players, eventSourceRef.current);
 
     // SSE 초기화 및 공통 이벤트 처리
@@ -98,7 +98,7 @@ export default function LobbyPage() {
             console.log("⚠️ roomId 또는 hostSessionId 없음: 테스트 모드로 동작합니다.");
             return;
         }
-        
+
         const sseUrl = `${API_BASE_URL}/sse/connect?roomId=${roomId}&sessionId=${hostId}`;
         const eventSource = new EventSource(sseUrl);
         eventSourceRef.current = eventSource;
@@ -125,7 +125,7 @@ export default function LobbyPage() {
         });
 
         return () => { eventSource.close(); };
-    }, [roomId]); 
+    }, [roomId]);
 
     // 게임 시작 버튼 핸들러
     const handleStartGame = async () => {
@@ -133,16 +133,16 @@ export default function LobbyPage() {
             await mafia.startGame();
             setCommonPhase('MAFIA_GAME');
         }
-        else if (gameType === 'TRUTH') { 
+        else if (gameType === 'TRUTH') {
             await truth.startGame();
             setCommonPhase('TRUTH_GAME');
         }
-        else if (gameType === 'SPEED_QUIZ') { 
-            await quiz.actions.initGame(); 
+        else if (gameType === 'SPEED_QUIZ') {
+            await quiz.actions.initGame();
             setCommonPhase('QUIZ_GAME');
         }
         else if (gameType === 'LIAR') {
-            await liar.startGame(0); 
+            await liar.startGame(0);
             setCommonPhase('LIAR_GAME');
         }
         else {
@@ -158,11 +158,11 @@ export default function LobbyPage() {
 
     return (
         <main className="relative flex min-h-screen flex-col items-center bg-black text-white p-6 overflow-hidden">
-            
+
             {/* ============================================================ */}
             {/* 🛠️ [개발자 테스트 컨트롤러] */}
             {/* ============================================================ */}
-            
+
             {/* 1. 주루마블용 테스트 버튼 */}
             {gameType === 'JURUMARBLE' && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-gray-800/90 p-4 rounded-xl border border-yellow-500 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
@@ -242,17 +242,16 @@ export default function LobbyPage() {
 
             {/* Header (게임 종류 표시) */}
             <div className="w-full flex justify-between items-center mb-6 z-10 h-16 shrink-0">
-                <h1 className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${
-                    gameType === 'LIAR' ? 'from-green-400 to-emerald-600' : 
-                    gameType === 'MAFIA' ? 'from-red-600 via-red-900 to-black' :
-                    gameType === 'TRUTH' ? 'from-pink-500 via-rose-500 to-purple-600' :
-                    gameType === 'SPEED_QUIZ' ? 'from-blue-500 via-cyan-500 to-teal-500' :
-                    'from-yellow-400 via-orange-500 to-red-500'
-                }`}>
-                    {gameType === 'MAFIA' ? '🕵️‍♂️ MAFIA GAME' : 
-                    gameType === 'TRUTH' ? '🧠 TRUTH GAME' : 
-                    gameType === 'SPEED_QUIZ' ? '🙆‍♂️ SPEED QUIZ' : 
-                    gameType === 'LIAR' ? '🦜 LIAR GAME' : '🎲 JURU MARBLE'}
+                <h1 className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${gameType === 'LIAR' ? 'from-green-400 to-emerald-600' :
+                        gameType === 'MAFIA' ? 'from-red-600 via-red-900 to-black' :
+                            gameType === 'TRUTH' ? 'from-pink-500 via-rose-500 to-purple-600' :
+                                gameType === 'SPEED_QUIZ' ? 'from-blue-500 via-cyan-500 to-teal-500' :
+                                    'from-yellow-400 via-orange-500 to-red-500'
+                    }`}>
+                    {gameType === 'MAFIA' ? '🕵️‍♂️ MAFIA GAME' :
+                        gameType === 'TRUTH' ? '🧠 TRUTH GAME' :
+                            gameType === 'SPEED_QUIZ' ? '🙆‍♂️ SPEED QUIZ' :
+                                gameType === 'LIAR' ? '🦜 LIAR GAME' : '🎲 JURU MARBLE'}
                 </h1>
 
                 <div className="flex items-center gap-4">
@@ -265,7 +264,7 @@ export default function LobbyPage() {
 
             {/* Content Area */}
             <div className="flex-1 w-full flex items-center justify-center z-10 overflow-hidden">
-                
+
                 {/* 1. 공통 로비 (LOBBY) */}
                 {commonPhase === 'LOBBY' && (
                     <div className="flex w-full max-w-6xl gap-8">
@@ -290,7 +289,7 @@ export default function LobbyPage() {
                             <div className="grid grid-cols-2 gap-4 overflow-y-auto max-h-[400px] mb-4">
                                 {players.map(p => (
                                     <div key={p.id} className="p-4 rounded-xl border bg-gray-800 border-gray-700 flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-black" style={{background: p.color}}>{p.nickname[0]}</div>
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-black" style={{ background: p.color }}>{p.nickname[0]}</div>
                                         <span className="font-bold text-lg">{p.nickname}</span>
                                     </div>
                                 ))}
@@ -390,7 +389,7 @@ export default function LobbyPage() {
                                     <div className="w-full h-[1px] bg-gray-700 my-2"></div>
                                     {juru.assignMethod === 'RANDOM' && (
                                         <div className="text-center animate-fadeIn">
-                                            <p className="text-gray-400 mb-4 text-sm">"전체 인원을 무작위로 섞어서<br/>{juru.teamCount}개 팀에 균등하게 배정합니다."</p>
+                                            <p className="text-gray-400 mb-4 text-sm">"전체 인원을 무작위로 섞어서<br />{juru.teamCount}개 팀에 균등하게 배정합니다."</p>
                                             {/* 🎨 [수정] 랜덤 섞기 버튼 (gradient blue -> theme gradient) */}
                                             <button onClick={juru.handleDivideRandom} className={`w-full py-4 bg-gradient-to-r ${currentTheme.gradient} rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition`}>
                                                 {juru.teamResult ? '🔄 리롤' : '🎲 랜덤 섞기 시작!'}
@@ -399,7 +398,7 @@ export default function LobbyPage() {
                                     )}
                                     {juru.assignMethod === 'MANUAL' && (
                                         <div className="text-center animate-fadeIn">
-                                            <p className="text-gray-400 mb-4 text-sm">"플레이어들이 각자 폰에서<br/>원하는 팀을 직접 선택합니다."</p>
+                                            <p className="text-gray-400 mb-4 text-sm">"플레이어들이 각자 폰에서<br />원하는 팀을 직접 선택합니다."</p>
                                             <button onClick={juru.handleManualMode} className="w-full py-4 bg-gray-700 border-2 border-dashed border-gray-500 rounded-xl font-bold text-xl hover:bg-gray-600 transition">🔄 팀 초기화 (재선택 유도)</button>
                                         </div>
                                     )}
@@ -408,7 +407,7 @@ export default function LobbyPage() {
                                     {juru.teamResult && Object.entries(juru.teamResult).map(([teamName, members]) => (
                                         <div key={teamName} className="bg-gray-800 p-4 rounded-xl border border-gray-700">
                                             <h3 className="font-bold text-xl mb-2 flex justify-between">
-                                                {teamName} 
+                                                {teamName}
                                                 {/* @ts-ignore */}
                                                 <span className="text-sm bg-black/30 px-2 py-1 rounded text-gray-400">{members.length}명</span>
                                             </h3>
@@ -458,11 +457,11 @@ export default function LobbyPage() {
                         )}
                     </>
                 )}
-                
+
                 {/* ... (나머지 게임 컴포넌트 렌더링 부분은 동일) ... */}
                 {/* --- 🕵️‍♀️ 마피아 UI --- */}
                 {gameType === 'MAFIA' && commonPhase === 'MAFIA_GAME' && (
-                    <MafiaBoard 
+                    <MafiaBoard
                         players={mafia.mafiaPlayers}
                         phase={mafia.phase}
                         timer={mafia.timer}
@@ -496,24 +495,25 @@ export default function LobbyPage() {
                     />
                 )}
 
-                {/* --- 🙆‍♂️ 몸으로 말해요 UI --- */}
-                {gameType === 'SPEED_QUIZ' && commonPhase === 'QUIZ_GAME' && (
+                {gameType === 'SPEED_QUIZ' && (phase === 'TEAM_SETUP' || gamePhase === 'QUIZ_GAME') && (
                     <QuizBoard
                         phase={quiz.phase}
                         gameState={quiz.gameState}
                         categories={quiz.categories}
                         ranking={quiz.ranking}
+                        teamCount={quiz.teamCount}
+                        onTeamCountChange={quiz.testHandlers.handleTeamCountChange} // Hook에서 export 해줘야 함
+                        onConfirmTeam={quiz.testHandlers.handleConfirmTeam} // Hook에서 export 해줘야 함
                         onStartRound={quiz.actions.startRound}
                         onNextTeam={quiz.actions.handleNextTeam}
                         onEndGame={quiz.actions.handleEndGame}
-                        onCorrect={() => gameApi.quiz.correct(roomId).catch(() => {})}
-                        onPass={() => gameApi.quiz.pass(roomId).catch(() => {})}
+                        onCorrect={() => gameApi.quiz.correct(roomId).catch(() => { })}
                     />
                 )}
 
                 {/* 🦜 라이어 게임 UI */}
                 {gameType === 'LIAR' && commonPhase === 'LIAR_GAME' && (
-                    <LiarBoard 
+                    <LiarBoard
                         phase={liar.phase}
                         players={liar.gamePlayers}
                         timer={liar.timer}

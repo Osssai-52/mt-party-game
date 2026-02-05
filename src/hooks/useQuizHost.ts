@@ -3,7 +3,26 @@ import gameApi from '../services/gameApi';
 import { QuizCategory, QuizPhase, QuizState } from '../types/quiz';
 
 export default function useQuizHost(roomId: string, eventSource: EventSource | null) {
-    const [phase, setPhase] = useState<QuizPhase>('WAITING');
+    const [phase, setPhase] = useState<QuizPhase | 'TEAM_SETUP'>('TEAM_SETUP');
+    const [teamCount, setTeamCount] = useState(2);
+
+    const handleTeamCountChange = (delta: number) => {
+        setTeamCount(prev => Math.max(2, Math.min(10, prev + delta)));
+    };
+
+    const handleConfirmTeam = async () => {
+        try {
+            // 팀 나누기 API 호출 (랜덤)
+            await gameApi.team.divideRandom(roomId, teamCount);
+            // 그 다음 게임 초기화 (기존 WAITING으로 진입)
+            await gameApi.quiz.init(roomId);
+            setPhase('WAITING');
+        } catch (e) {
+            console.error(e);
+            alert("팀 설정 실패 (테스트 모드 진입)");
+            setPhase('WAITING');
+        }
+    };
     const [categories, setCategories] = useState<QuizCategory[]>([]);
     const [gameState, setGameState] = useState<QuizState>({
         currentWord: null,
@@ -30,7 +49,7 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
 
     const runTestStartRound = (catId: number) => {
         console.log(`⚠️ API 실패 -> 테스트 라운드 시작 (Cat: ${catId})`);
-        
+
         // 기존에 돌아가던 타이머가 있으면 끄기 
         if (timerRef.current) {
             clearInterval(timerRef.current);
@@ -43,15 +62,15 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
             remainingSeconds: 60,
             currentTeam: 'A'
         }));
-        
+
         // 가짜 타이머 로직
         let count = 60;
-        
+
         // 타이머 ID를 ref에 저장해둬야 나중에 끌 수 있음
         timerRef.current = setInterval(() => {
             count--;
             setGameState(prev => ({ ...prev, remainingSeconds: count }));
-            
+
             if (count <= 0) {
                 // 끝날 때도 깔끔하게 ref 사용하여 끄기
                 if (timerRef.current) clearInterval(timerRef.current);
@@ -79,7 +98,7 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
     // ============================================================
     // 🌐 [REAL LOGIC] 실제 API 호출 (실패 시 위 테스트 로직 실행)
     // ============================================================
-    
+
     // 1. 초기화
     const initGame = async () => {
         try {
@@ -99,28 +118,28 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
 
     // 2. 라운드 시작
     const startRound = async (categoryId: number) => {
-        try { 
-            await gameApi.quiz.startRound(roomId, categoryId); 
-        } catch (e) { 
-            runTestStartRound(categoryId); 
+        try {
+            await gameApi.quiz.startRound(roomId, categoryId);
+        } catch (e) {
+            runTestStartRound(categoryId);
         }
     };
 
     // 3. 다음 팀
     const handleNextTeam = async () => {
-        try { 
-            await gameApi.quiz.nextTeam(roomId); 
-        } catch (e) { 
-            runTestNextTeam(); 
+        try {
+            await gameApi.quiz.nextTeam(roomId);
+        } catch (e) {
+            runTestNextTeam();
         }
     };
 
     // 4. 게임 종료
     const handleEndGame = async () => {
-        try { 
-            await gameApi.quiz.endGame(roomId); 
-        } catch (e) { 
-            runTestEndGame(); 
+        try {
+            await gameApi.quiz.endGame(roomId);
+        } catch (e) {
+            runTestEndGame();
         }
     };
 
@@ -187,10 +206,10 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
         });
 
         eventSource.addEventListener('QUIZ_STATE_UPDATE', (e: any) => {
-             const data = JSON.parse(e.data);
-             if(data.phase) setPhase(data.phase);
-             if(data.currentTeam) setGameState(prev => ({ ...prev, currentTeam: data.currentTeam }));
-             if(data.score) setGameState(prev => ({ ...prev, score: data.score }));
+            const data = JSON.parse(e.data);
+            if (data.phase) setPhase(data.phase);
+            if (data.currentTeam) setGameState(prev => ({ ...prev, currentTeam: data.currentTeam }));
+            if (data.score) setGameState(prev => ({ ...prev, score: data.score }));
         });
 
     }, [eventSource, roomId]);
@@ -200,6 +219,7 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
         categories,
         gameState,
         ranking,
+        teamCount,
         actions: {
             initGame,
             startRound,
@@ -210,7 +230,9 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
             handleTestInit: runTestInit,
             handleTestStartRound: runTestStartRound,
             handleTestNextTeam: runTestNextTeam,
-            handleTestEndGame: runTestEndGame
+            handleTestEndGame: runTestEndGame,
+            handleTeamCountChange,
+            handleConfirmTeam
         }
     };
 }

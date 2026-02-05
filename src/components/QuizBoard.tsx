@@ -8,14 +8,38 @@ interface QuizBoardProps {
     gameState: QuizState;
     categories: QuizCategory[];
     ranking?: Record<string, number> | null;
+    teamCount?: number;
+    onTeamCountChange?: (delta: number) => void;
+    onConfirmTeam?: () => void;
     onStartRound: (catId: number) => void;
     onNextTeam: () => void;
     onEndGame: () => void;
     onCorrect?: () => void;
-    onPass?: () => void;
 }
 
-export default function QuizBoard({ phase, gameState, categories, ranking, onStartRound, onNextTeam, onEndGame, onCorrect, onPass }: QuizBoardProps) {
+export default function QuizBoard({ phase, gameState, categories, ranking, teamCount = 2, onTeamCountChange = () => { }, onConfirmTeam = () => { }, onStartRound, onNextTeam, onEndGame, onCorrect }: QuizBoardProps) {
+
+    // 0. 팀 설정 (게임 시작 전)
+    if (phase === 'TEAM_SETUP') {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-blue-900 text-white p-8">
+                <h1 className="text-4xl font-bold mb-8">👥 팀 개수를 설정하세요</h1>
+                <div className="flex items-center gap-8 mb-12">
+                    <button onClick={() => onTeamCountChange(-1)} className="w-16 h-16 bg-blue-700 rounded-full text-3xl font-bold shadow-lg hover:bg-blue-600">-</button>
+                    <div className="text-8xl font-black bg-white text-blue-900 w-40 h-40 rounded-3xl flex items-center justify-center shadow-inner">
+                        {teamCount}
+                    </div>
+                    <button onClick={() => onTeamCountChange(1)} className="w-16 h-16 bg-blue-700 rounded-full text-3xl font-bold shadow-lg hover:bg-blue-600">+</button>
+                </div>
+                <button
+                    onClick={onConfirmTeam}
+                    className="px-12 py-6 bg-green-500 rounded-2xl text-3xl font-black shadow-xl hover:scale-105 transition transform"
+                >
+                    설정 완료 & 카테고리 선택 👉
+                </button>
+            </div>
+        );
+    }
 
     // 1. 대기 화면 (카테고리 선택)
     if (phase === 'WAITING') {
@@ -51,7 +75,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
                 </div>
 
                 <div className="flex-1 flex items-center justify-center w-full z-10">
-                    <motion.div 
+                    <motion.div
                         key={gameState.currentWord}
                         initial={{ scale: 0.5, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -78,14 +102,15 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
                                 ⭕ 정답
                             </button>
                         )}
-                        {onPass && (
+                        {onCorrect && (
                             <button
-                                onClick={onPass}
-                                className="px-10 py-4 bg-red-500 text-white rounded-2xl text-3xl font-black shadow-lg hover:bg-red-400 active:scale-95 transition"
+                                onClick={onCorrect}
+                                className="px-20 py-8 bg-green-500 text-white rounded-3xl text-5xl font-black shadow-lg hover:bg-green-400 active:scale-95 transition"
                             >
-                                ❌ PASS
+                                ⭕ 정답
                             </button>
                         )}
+                        {/* ❌ PASS 버튼 제거됨 */}
                     </div>
                 </div>
             </div>
@@ -98,7 +123,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
             <div className="w-full h-full flex flex-col items-center justify-center bg-black text-white p-8">
                 <div className="text-6xl mb-4">⌛ Time Over!</div>
                 <h2 className="text-3xl font-bold mb-12">중간 점수 확인</h2>
-                
+
                 <div className="bg-gray-800 p-8 rounded-3xl w-full max-w-2xl mb-8">
                     {Object.entries(gameState.score).map(([team, score]) => (
                         <div key={team} className="flex justify-between text-4xl font-bold mb-4 last:mb-0 border-b border-gray-700 pb-2 last:border-0">
@@ -123,10 +148,10 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
     // 4. 최종 결과 (Ranking)
     if (phase === 'FINISHED') {
         // 랭킹 데이터 정렬 (점수 높은 순)
-        const sortedRanking = ranking 
+        const sortedRanking = ranking
             ? Object.entries(ranking).sort(([, a], [, b]) => b - a)
             : [];
-        
+
         const winner = sortedRanking.length > 0 ? sortedRanking[0][0] : '?';
 
         return (
@@ -149,7 +174,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
                             <div className="mt-2 text-3xl font-bold">{sortedRanking[1][1]}점</div>
                         </div>
                     )}
-                    
+
                     {/* 1등 */}
                     {sortedRanking[0] && (
                         <div className="flex flex-col items-center">
@@ -173,7 +198,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, onSta
                         </div>
                     )}
                 </div>
-                
+
                 {/* 4등 이하 리스트 */}
                 {sortedRanking.length > 3 && (
                     <div className="w-full max-w-4xl z-10 mb-8">
