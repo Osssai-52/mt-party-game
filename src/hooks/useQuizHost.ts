@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import gameApi from '../services/gameApi';
 import { QuizCategory, QuizPhase, QuizState } from '../types/quiz';
-import { useState, useEffect, useCallback, useRef } from 'react';
 
 export default function useQuizHost(roomId: string, eventSource: EventSource | null) {
     const [phase, setPhase] = useState<QuizPhase>('WAITING');
