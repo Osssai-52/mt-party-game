@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import gameApi from '../services/gameApi';
 import { QuizCategory, QuizPhase, QuizState } from '../types/quiz';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export default function useQuizHost(roomId: string, eventSource: EventSource | null) {
     const [phase, setPhase] = useState<QuizPhase>('WAITING');
@@ -12,6 +13,7 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
         currentTeam: null
     });
     const [ranking, setRanking] = useState<Record<string, number> | null>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     // ============================================================
     // 🛠️ [TEST LOGIC] 서버가 없을 때 대신 실행될 가짜 로직들
@@ -29,6 +31,12 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
 
     const runTestStartRound = (catId: number) => {
         console.log(`⚠️ API 실패 -> 테스트 라운드 시작 (Cat: ${catId})`);
+        
+        // 기존에 돌아가던 타이머가 있으면 끄기 
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+
         setPhase('PLAYING');
         setGameState(prev => ({
             ...prev,
@@ -37,12 +45,18 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
             currentTeam: 'A'
         }));
         
-        // 가짜 타이머
+        // 가짜 타이머 로직
         let count = 60;
-        const timer = setInterval(() => {
+        
+        // 타이머 ID를 ref에 저장해둬야 나중에 끌 수 있음
+        timerRef.current = setInterval(() => {
             count--;
             setGameState(prev => ({ ...prev, remainingSeconds: count }));
-            if (count <= 0) clearInterval(timer);
+            
+            if (count <= 0) {
+                // 끝날 때도 깔끔하게 ref 사용하여 끄기
+                if (timerRef.current) clearInterval(timerRef.current);
+            }
         }, 1000);
     };
 
