@@ -136,6 +136,12 @@ export const gameApi = {
         selectQuestion: (roomId: string) => api.post('/games/truth/question/select', { roomId }),
         confirmQuestion: (roomId: string) => api.post('/games/truth/question/confirm', { roomId }),
 
+        // 질문 투표
+        getQuestionList: (roomId: string) => api.get(`/games/truth/question/list/${roomId}`),
+        voteQuestion: (roomId: string, deviceId: string, questionIndex: number) => api.post('/games/truth/question/vote', { roomId, deviceId, questionIndex }),
+        voteQuestionDone: (roomId: string, deviceId: string) => api.post('/games/truth/question/vote/done', { roomId, deviceId }),
+        finishQuestionVote: (roomId: string) => api.post('/games/truth/question/vote/finish', { roomId }),
+
         // 얼굴 데이터 & 결과
         sendFaceData: (roomId: string, deviceId: string, data: any) => api.post('/games/truth/face-tracking', { roomId, deviceId, data }),
         finishAnswering: (roomId: string) => api.post('/games/truth/finish-answering', { roomId }),

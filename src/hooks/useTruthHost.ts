@@ -9,6 +9,10 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
     const [currentQuestion, setCurrentQuestion] = useState<TruthQuestion | null>(null);
     const [result, setResult] = useState<FaceAnalysisData | null>(null);
     
+    // 투표 상태
+    const [voteDoneCount, setVoteDoneCount] = useState(0);
+    const [totalVoters, setTotalVoters] = useState(0);
+
     // 실시간 얼굴 분석 데이터 (HUD 표시용)
     const [realtimeFace, setRealtimeFace] = useState<FaceAnalysisData>({
         eyeBlinkRate: 0, eyeMovement: 0, facialTremor: 0, nostrilMovement: 0, stressLevel: 0, isLie: false
@@ -26,6 +30,10 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
         try { await gameApi.truth.selectAnswererRandom(roomId); } catch (e) { console.error(e); }
     };
 
+    const handleSelectAnswerer = async (deviceId: string) => {
+        try { await gameApi.truth.selectAnswerer(roomId, deviceId); } catch (e) { console.error(e); }
+    };
+
     const handleFinishSubmit = async () => {
         try { await gameApi.truth.finishQuestionSubmit(roomId); } catch (e) { console.error(e); }
     };
@@ -37,6 +45,10 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
     const handleConfirmQuestion = async () => {
         if (!currentQuestion) return;
         try { await gameApi.truth.confirmQuestion(roomId); } catch (e) { console.error(e); }
+    };
+
+    const handleFinishQuestionVote = async () => {
+        try { await gameApi.truth.finishQuestionVote(roomId); } catch (e) { console.error(e); }
     };
 
     const handleFinishAnswering = async () => {
@@ -59,6 +71,12 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
         eventSource.addEventListener('TRUTH_ANSWERER_SELECTED', (e: any) => {
             const data = JSON.parse(e.data);
             setAnswerer(data.answerer);
+            if (data.phase) setPhase(data.phase);
+        });
+
+        eventSource.addEventListener('TRUTH_QUESTION_SUBMITTED', (e: any) => {
+            const data = JSON.parse(e.data);
+            setQuestionCount(data.questionCount);
         });
 
         eventSource.addEventListener('TRUTH_QUESTION_COUNT', (e: any) => {
@@ -66,14 +84,47 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             setQuestionCount(data.count);
         });
 
+        eventSource.addEventListener('TRUTH_QUESTIONS_READY', (e: any) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setPhase(data.phase);
+            setVoteDoneCount(0);
+            setTotalVoters(0);
+        });
+
+        eventSource.addEventListener('TRUTH_QUESTION_VOTE_DONE', (e: any) => {
+            const data = JSON.parse(e.data);
+            setVoteDoneCount(data.doneCount);
+            setTotalVoters(data.totalPlayers);
+        });
+
         eventSource.addEventListener('TRUTH_QUESTION_SELECTED', (e: any) => {
             const data = JSON.parse(e.data);
             setCurrentQuestion(data.question);
         });
-        
+
+        eventSource.addEventListener('TRUTH_START_ANSWERING', (e: any) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setPhase(data.phase);
+            if (data.question) {
+                setCurrentQuestion({ id: 0, content: data.question });
+            }
+        });
+
         eventSource.addEventListener('TRUTH_RESULT', (e: any) => {
             const data = JSON.parse(e.data);
-            setResult(data.result); 
+            if (data.phase) setPhase(data.phase);
+            setResult(data.result);
+        });
+
+        eventSource.addEventListener('TRUTH_NEXT_ROUND', (e: any) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setPhase(data.phase);
+            setAnswerer(null);
+            setCurrentQuestion(null);
+            setResult(null);
+            setQuestionCount(0);
+            setVoteDoneCount(0);
+            setTotalVoters(0);
         });
 
     }, [eventSource]);
@@ -144,12 +195,16 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
         result,
         realtimeFace,
         setRealtimeFace,
-        
+        voteDoneCount,
+        totalVoters,
+
         startGame,
         handleSelectRandom,
+        handleSelectAnswerer,
         handleFinishSubmit,
         handleSelectQuestion,
         handleConfirmQuestion,
+        handleFinishQuestionVote,
         handleFinishAnswering,
         handleNextRound,
 

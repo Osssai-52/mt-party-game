@@ -475,7 +475,7 @@ export default function LobbyPage() {
 
                 {/* --- 🧠 진실게임 UI --- */}
                 {gameType === 'TRUTH' && commonPhase === 'TRUTH_GAME' && (
-                    <TruthBoard 
+                    <TruthBoard
                         phase={truth.phase}
                         answerer={truth.answerer}
                         question={truth.currentQuestion}
@@ -483,6 +483,16 @@ export default function LobbyPage() {
                         setRealtimeFace={truth.setRealtimeFace}
                         realtimeFace={truth.realtimeFace}
                         roomId={roomId}
+                        players={players}
+                        questionCount={truth.questionCount}
+                        voteDoneCount={truth.voteDoneCount}
+                        totalVoters={truth.totalVoters}
+                        onSelectRandom={truth.handleSelectRandom}
+                        onSelectAnswerer={truth.handleSelectAnswerer}
+                        onFinishSubmit={truth.handleFinishSubmit}
+                        onFinishQuestionVote={truth.handleFinishQuestionVote}
+                        onFinishAnswering={truth.handleFinishAnswering}
+                        onNextRound={truth.handleNextRound}
                     />
                 )}
 

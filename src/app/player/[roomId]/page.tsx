@@ -69,6 +69,7 @@ export default function PlayerRoomPage() {
 
     // --- [진실게임 State] ---
     const [truthPhase, setTruthPhase] = useState<TruthPhase>('SELECT_ANSWERER');
+    const [truthQuestionList, setTruthQuestionList] = useState<{index: number, question: string}[]>([]);
 
     // --- [몸으로 말해요 State] ---
     const [quizPhase, setQuizPhase] = useState<string>('WAITING');
@@ -215,8 +216,36 @@ export default function PlayerRoomPage() {
         // ---------------- [진실게임 이벤트] ----------------
         eventSource.addEventListener('TRUTH_PHASE_CHANGE', (e) => {
             const data = JSON.parse(e.data);
-            setTruthPhase(data.phase); // SUBMIT_QUESTIONS, ANSWERING 등
-            setPhase('TRUTH_GAME'); // 메인 페이즈 전환
+            setTruthPhase(data.phase);
+            setPhase('TRUTH_GAME');
+        });
+
+        eventSource.addEventListener('TRUTH_ANSWERER_SELECTED', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setTruthPhase(data.phase);
+            setPhase('TRUTH_GAME');
+        });
+
+        eventSource.addEventListener('TRUTH_QUESTIONS_READY', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setTruthPhase(data.phase);
+            if (data.questions) setTruthQuestionList(data.questions);
+        });
+
+        eventSource.addEventListener('TRUTH_START_ANSWERING', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setTruthPhase(data.phase);
+        });
+
+        eventSource.addEventListener('TRUTH_RESULT', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setTruthPhase(data.phase);
+        });
+
+        eventSource.addEventListener('TRUTH_NEXT_ROUND', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.phase) setTruthPhase(data.phase);
+            setTruthQuestionList([]);
         });
 
         // ---------------- [몸으로 말해요 이벤트] ----------------
@@ -479,10 +508,11 @@ export default function PlayerRoomPage() {
     if (phase === 'TRUTH_GAME') {
         return (
             <div className="min-h-screen bg-black text-white">
-                <TruthController 
+                <TruthController
                     roomId={roomId}
                     deviceId={deviceId}
                     phase={truthPhase}
+                    questionList={truthQuestionList}
                 />
             </div>
         );
