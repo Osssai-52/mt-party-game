@@ -23,19 +23,48 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
         try {
             await gameApi.truth.init(roomId);
             setPhase('SELECT_ANSWERER');
-        } catch (e) { console.error(e); }
+        } catch (e: any) {
+            console.error(e);
+            alert(`게임 초기화 실패: ${e.response?.data?.message || e.message}`);
+        }
     };
 
     const handleSelectRandom = async () => {
-        try { await gameApi.truth.selectAnswererRandom(roomId); } catch (e) { console.error(e); }
+        try {
+            const res = await gameApi.truth.selectAnswererRandom(roomId);
+            const data = res.data?.data;
+            if (data) {
+                setAnswerer({ deviceId: data.deviceId, nickname: data.nickname, profileImage: null });
+                setPhase('SUBMIT_QUESTIONS');
+            }
+        } catch (e: any) {
+            console.error(e);
+            alert(`답변자 선정 실패: ${e.response?.data?.message || e.message}`);
+        }
     };
 
     const handleSelectAnswerer = async (deviceId: string) => {
-        try { await gameApi.truth.selectAnswerer(roomId, deviceId); } catch (e) { console.error(e); }
+        try {
+            const res = await gameApi.truth.selectAnswerer(roomId, deviceId);
+            const data = res.data?.data;
+            if (data) {
+                setAnswerer({ deviceId: data.deviceId, nickname: data.nickname, profileImage: null });
+                setPhase('SUBMIT_QUESTIONS');
+            }
+        } catch (e: any) {
+            console.error(e);
+            alert(`답변자 선정 실패: ${e.response?.data?.message || e.message}`);
+        }
     };
 
     const handleFinishSubmit = async () => {
-        try { await gameApi.truth.finishQuestionSubmit(roomId); } catch (e) { console.error(e); }
+        try {
+            await gameApi.truth.finishQuestionSubmit(roomId);
+            setPhase('SELECT_QUESTION');
+        } catch (e: any) {
+            console.error(e);
+            alert(`질문 마감 실패: ${e.response?.data?.message || e.message}`);
+        }
     };
 
     const handleSelectQuestion = async () => {
@@ -48,15 +77,37 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
     };
 
     const handleFinishQuestionVote = async () => {
-        try { await gameApi.truth.finishQuestionVote(roomId); } catch (e) { console.error(e); }
+        try {
+            await gameApi.truth.finishQuestionVote(roomId);
+        } catch (e: any) {
+            console.error(e);
+            alert(`투표 마감 실패: ${e.response?.data?.message || e.message}`);
+        }
     };
 
     const handleFinishAnswering = async () => {
-        try { await gameApi.truth.finishAnswering(roomId); } catch (e) { console.error(e); }
+        try {
+            await gameApi.truth.finishAnswering(roomId);
+        } catch (e: any) {
+            console.error(e);
+            alert(`답변 종료 실패: ${e.response?.data?.message || e.message}`);
+        }
     };
 
     const handleNextRound = async () => {
-        try { await gameApi.truth.nextRound(roomId); } catch (e) { console.error(e); }
+        try {
+            await gameApi.truth.nextRound(roomId);
+            setPhase('SELECT_ANSWERER');
+            setAnswerer(null);
+            setCurrentQuestion(null);
+            setResult(null);
+            setQuestionCount(0);
+            setVoteDoneCount(0);
+            setTotalVoters(0);
+        } catch (e: any) {
+            console.error(e);
+            alert(`다음 라운드 실패: ${e.response?.data?.message || e.message}`);
+        }
     };
 
     // --- [SSE Listeners] ---
