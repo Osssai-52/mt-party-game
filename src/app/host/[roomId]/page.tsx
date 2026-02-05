@@ -35,11 +35,47 @@ interface GamePlayer {
     isVoteFinished?: boolean; 
 }
 
+// [스타일링] 게임별 테마 색상 매핑
+const THEME_STYLES: Record<string, { border: string; button: string; text: string; gradient: string }> = {
+    JURUMARBLE: { 
+        border: 'border-orange-500', 
+        button: 'bg-orange-600 hover:bg-orange-500',
+        text: 'text-orange-500',
+        gradient: 'from-orange-600 to-orange-400' 
+    },
+    MAFIA: { 
+        border: 'border-red-600', 
+        button: 'bg-red-600 hover:bg-red-500',
+        text: 'text-red-600',
+        gradient: 'from-red-700 to-red-500'
+    },
+    TRUTH: { 
+        border: 'border-pink-500', 
+        button: 'bg-pink-600 hover:bg-pink-500',
+        text: 'text-pink-500',
+        gradient: 'from-pink-600 to-purple-500'
+    },
+    SPEED_QUIZ: { 
+        border: 'border-blue-500', 
+        button: 'bg-blue-600 hover:bg-blue-500',
+        text: 'text-blue-500',
+        gradient: 'from-blue-600 to-cyan-500'
+    },
+    LIAR: { 
+        border: 'border-green-500', 
+        button: 'bg-green-600 hover:bg-green-500',
+        text: 'text-green-500',
+        gradient: 'from-green-600 to-emerald-500'
+    }
+};
+
 export default function LobbyPage() {
     const params = useParams();
     const roomId = params.roomId as string;
     const searchParams = useSearchParams();
     const gameType = searchParams.get('game') || 'JURUMARBLE';
+
+    const currentTheme = THEME_STYLES[gameType] || THEME_STYLES.JURUMARBLE;
 
     // --- 공통 상태 (로비 대기용) ---
     const [players, setPlayers] = useState<GamePlayer[]>([]);
@@ -48,7 +84,7 @@ export default function LobbyPage() {
     // SSE 연결 (공통)
     const eventSourceRef = useRef<EventSource | null>(null);
 
-    // 🌟 [Hook 연결] 
+    // [Hook 연결] 
     const juru = useJuruHost(roomId, players, eventSourceRef.current);
     const mafia = useMafiaHost(roomId, players, eventSourceRef.current);
     const truth = useTruthHost(roomId, players, eventSourceRef.current);
@@ -192,7 +228,7 @@ export default function LobbyPage() {
                 </div>
             )}
 
-            {/* 🦜 5. 라이어게임용 테스트 버튼 (NEW!) */}
+            {/* 5. 라이어게임용 테스트 버튼 */}
             {gameType === 'LIAR' && commonPhase === 'LIAR_GAME' && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-green-900/90 p-4 rounded-xl border border-green-400 backdrop-blur-md flex flex-col gap-2 shadow-2xl">
                     <h3 className="text-xs font-bold text-green-300 mb-1">🦜 LIAR TEST</h3>
@@ -206,9 +242,12 @@ export default function LobbyPage() {
 
             {/* Header (게임 종류 표시) */}
             <div className="w-full flex justify-between items-center mb-6 z-10 h-16 shrink-0">
-                {/* 🎨 [수정] 게임 타입이 LIAR일 때 초록색 그라데이션 적용 */}
                 <h1 className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${
-                    gameType === 'LIAR' ? 'from-green-400 to-emerald-600' : 'from-purple-400 to-pink-600'
+                    gameType === 'LIAR' ? 'from-green-400 to-emerald-600' : 
+                    gameType === 'MAFIA' ? 'from-red-600 via-red-900 to-black' :
+                    gameType === 'TRUTH' ? 'from-pink-500 via-rose-500 to-purple-600' :
+                    gameType === 'SPEED_QUIZ' ? 'from-blue-500 via-cyan-500 to-teal-500' :
+                    'from-yellow-400 via-orange-500 to-red-500'
                 }`}>
                     {gameType === 'MAFIA' ? '🕵️‍♂️ MAFIA GAME' : 
                     gameType === 'TRUTH' ? '🧠 TRUTH GAME' : 
@@ -230,7 +269,7 @@ export default function LobbyPage() {
                 {/* 1. 공통 로비 (LOBBY) */}
                 {commonPhase === 'LOBBY' && (
                     <div className="flex w-full max-w-6xl gap-8">
-                        <div className="w-1/3 flex flex-col items-center bg-gray-900 rounded-3xl p-6 border-2 border-purple-500">
+                        <div className={`w-1/3 flex flex-col items-center bg-gray-900 rounded-3xl p-6 border-2 ${currentTheme.border}`}>
                             <h2 className="text-2xl font-bold mb-4">Join Here! 👇</h2>
                             <div className="bg-white p-3 rounded-xl mb-4">
                                 <QRCodeSVG value={joinUrl} size={180} />
@@ -257,21 +296,21 @@ export default function LobbyPage() {
                                 ))}
                             </div>
 
-                            {/* 게임 시작 */}
+                            {/* 게임 시작 버튼들 - 테마 적용 */}
                             {gameType === 'MAFIA' ? (
-                                <button onClick={handleStartGame} className="w-full py-4 bg-red-600 hover:bg-red-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
+                                <button onClick={handleStartGame} className={`w-full py-4 ${currentTheme.button} rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105`}>
                                     🕵️‍♂️ 마피아 게임 시작!
                                 </button>
                             ) : gameType === 'TRUTH' ? (
-                                <button onClick={handleStartGame} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
+                                <button onClick={handleStartGame} className={`w-full py-4 ${currentTheme.button} rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105`}>
                                     🧠 진실 게임 시작!
                                 </button>
                             ) : gameType === 'SPEED_QUIZ' ? (
-                                <button onClick={handleStartGame} className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
+                                <button onClick={handleStartGame} className={`w-full py-4 ${currentTheme.button} rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105`}>
                                     🙆‍♂️ 몸으로 말해요 시작!
                                 </button>
                             ) : gameType === 'LIAR' ? (
-                                <button onClick={handleStartGame} className="w-full py-4 bg-green-600 hover:bg-green-500 rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105">
+                                <button onClick={handleStartGame} className={`w-full py-4 ${currentTheme.button} rounded-xl text-2xl font-bold shadow-lg transition transform hover:scale-105`}>
                                     🦜 라이어 게임 시작!
                                 </button>
                             ) : (
@@ -283,7 +322,7 @@ export default function LobbyPage() {
                                             console.error(e);
                                             setCommonPhase('SUBMIT');
                                         }
-                                    }} className="flex-1 bg-purple-600 px-4 py-4 rounded-xl font-bold text-xl">
+                                    }} className={`flex-1 ${currentTheme.button} px-4 py-4 rounded-xl font-bold text-xl transition transform hover:scale-105 shadow-lg`}>
                                         1. 벌칙 제출 단계로
                                     </button>
                                 </div>
@@ -300,6 +339,7 @@ export default function LobbyPage() {
                             <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 rounded-3xl p-6 border border-gray-800 max-w-4xl w-full">
                                 <h2 className="text-4xl font-bold mb-4">😈 벌칙 제출 중...</h2>
                                 <p className="text-xl text-gray-300 mb-8">현재 {juru.penaltyCount} / {juru.expectedPenaltyCount} 개의 벌칙이 제출되었습니다.</p>
+                                {/* 🎨 [수정] 투표 시작 버튼 (blue -> theme) */}
                                 <button onClick={async () => {
                                     try {
                                         await gameApi.common.changePhase(roomId, 'VOTE');
@@ -307,7 +347,7 @@ export default function LobbyPage() {
                                         console.error(e);
                                         setCommonPhase('VOTE');
                                     }
-                                }} className="bg-blue-600 px-8 py-4 rounded-full text-2xl font-bold animate-pulse">
+                                }} className={`${currentTheme.button} px-8 py-4 rounded-full text-2xl font-bold animate-pulse shadow-lg`}>
                                     투표 시작하기 👉
                                 </button>
                             </div>
@@ -317,7 +357,8 @@ export default function LobbyPage() {
                             <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
                                 <h2 className="text-4xl font-black mb-4">🗳️ 투표 진행 중...</h2>
                                 <p className="text-xl text-gray-300">투표 완료: {juru.voteDoneCount} / {juru.totalVoters} 명</p>
-                                <button onClick={juru.handleFinishVote} className="bg-purple-600 px-12 py-4 rounded-full text-2xl font-bold shadow-lg">
+                                {/* 🎨 [수정] 투표 마감 버튼 (purple -> theme) */}
+                                <button onClick={juru.handleFinishVote} className={`${currentTheme.button} px-12 py-4 rounded-full text-2xl font-bold shadow-lg`}>
                                     투표 마감 & 팀 편성하기 👥
                                 </button>
                             </div>
@@ -330,7 +371,8 @@ export default function LobbyPage() {
                                 </h2>
                                 <div className="flex bg-gray-800 p-1 rounded-xl">
                                     {(['RANDOM', 'MANUAL'] as const).map((method) => (
-                                        <button key={method} onClick={() => juru.setAssignMethod(method)} className={`px-6 py-2 rounded-lg font-bold transition-all ${juru.assignMethod === method ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
+                                        // 🎨 [수정] 팀 배정 방식 선택 버튼 (blue -> theme)
+                                        <button key={method} onClick={() => juru.setAssignMethod(method)} className={`px-6 py-2 rounded-lg font-bold transition-all ${juru.assignMethod === method ? `${currentTheme.button} text-white shadow-lg` : 'text-gray-400 hover:text-white'}`}>
                                             {method === 'RANDOM' && '🎲 랜덤 배정'}
                                             {method === 'MANUAL' && '👆 수동 선택'}
                                         </button>
@@ -349,7 +391,8 @@ export default function LobbyPage() {
                                     {juru.assignMethod === 'RANDOM' && (
                                         <div className="text-center animate-fadeIn">
                                             <p className="text-gray-400 mb-4 text-sm">"전체 인원을 무작위로 섞어서<br/>{juru.teamCount}개 팀에 균등하게 배정합니다."</p>
-                                            <button onClick={juru.handleDivideRandom} className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition">
+                                            {/* 🎨 [수정] 랜덤 섞기 버튼 (gradient blue -> theme gradient) */}
+                                            <button onClick={juru.handleDivideRandom} className={`w-full py-4 bg-gradient-to-r ${currentTheme.gradient} rounded-xl font-bold text-xl shadow-lg hover:scale-105 transition`}>
                                                 {juru.teamResult ? '🔄 리롤' : '🎲 랜덤 섞기 시작!'}
                                             </button>
                                         </div>
@@ -378,7 +421,8 @@ export default function LobbyPage() {
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={juru.handleStartGame} className="mt-8 bg-red-600 px-12 py-4 rounded-full text-2xl font-bold animate-bounce shadow-xl border-4 border-red-800">
+                                {/* 🎨 [수정] 최종 게임 시작 버튼 (red -> theme) */}
+                                <button onClick={juru.handleStartGame} className={`mt-8 ${currentTheme.button} px-12 py-4 rounded-full text-2xl font-bold animate-bounce shadow-xl border-4 ${currentTheme.border}`}>
                                     게임 시작! 🏁
                                 </button>
                             </div>
@@ -395,8 +439,8 @@ export default function LobbyPage() {
                                         // @ts-ignore
                                         const isTeamTurn = members.some(m => m.deviceId === juru.currentTurnDeviceId);
                                         return (
-                                            <motion.div key={teamName} animate={isTeamTurn ? { scale: 1.05 } : { scale: 1 }} className={`relative p-5 rounded-2xl border-2 transition-all duration-300 ${isTeamTurn ? 'bg-gray-800 border-yellow-400' : 'bg-gray-900 border-gray-700 opacity-80'}`}>
-                                                <h4 className={`font-bold text-lg mb-2 ${isTeamTurn ? 'text-yellow-400' : 'text-white'}`}>{teamName}</h4>
+                                            <motion.div key={teamName} animate={isTeamTurn ? { scale: 1.05 } : { scale: 1 }} className={`relative p-5 rounded-2xl border-2 transition-all duration-300 ${isTeamTurn ? `bg-gray-800 ${currentTheme.border}` : 'bg-gray-900 border-gray-700 opacity-80'}`}>
+                                                <h4 className={`font-bold text-lg mb-2 ${isTeamTurn ? currentTheme.text : 'text-white'}`}>{teamName}</h4>
                                                 <div className="space-y-2">
                                                     {/* @ts-ignore */}
                                                     {members.map((m: any) => (
@@ -414,7 +458,8 @@ export default function LobbyPage() {
                         )}
                     </>
                 )}
-
+                
+                {/* ... (나머지 게임 컴포넌트 렌더링 부분은 동일) ... */}
                 {/* --- 🕵️‍♀️ 마피아 UI --- */}
                 {gameType === 'MAFIA' && commonPhase === 'MAFIA_GAME' && (
                     <MafiaBoard 
