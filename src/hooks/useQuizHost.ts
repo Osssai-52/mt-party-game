@@ -27,7 +27,7 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
     const [gameState, setGameState] = useState<QuizState>({
         currentWord: null,
         remainingSeconds: 60,
-        score: { "A": 0, "B": 0 },
+        score: {},
         currentTeam: null
     });
     const [ranking, setRanking] = useState<Record<string, number> | null>(null);
@@ -134,10 +134,11 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
         }
     };
 
-    // 4. 게임 종료
+    // 4. 최종 결과 보기 (랭킹 조회)
     const handleEndGame = async () => {
         try {
-            await gameApi.quiz.endGame(roomId);
+            const res = await gameApi.quiz.getRanking(roomId);
+            // SSE QUIZ_FINAL_RANKING 이벤트가 ranking과 phase를 세팅함
         } catch (e) {
             runTestEndGame();
         }
@@ -146,6 +147,16 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
     // --- SSE Event Listeners ---
     useEffect(() => {
         if (!eventSource) return;
+
+        // 게임 초기화 시 팀 목록으로 점수 초기화
+        eventSource.addEventListener('QUIZ_INIT', (e: any) => {
+            const data = JSON.parse(e.data);
+            if (data.teams) {
+                const initialScore: Record<string, number> = {};
+                data.teams.forEach((t: string) => { initialScore[t] = 0; });
+                setGameState(prev => ({ ...prev, score: initialScore, currentTeam: data.currentTeam }));
+            }
+        });
 
         eventSource.addEventListener('QUIZ_TIMER', (e: any) => {
             const data = JSON.parse(e.data);
@@ -194,15 +205,24 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
             setPhase('ROUND_END');
         });
 
-        eventSource.addEventListener('QUIZ_FINISHED', async () => {
-            setPhase('FINISHED');
-            try {
-                const res = await gameApi.quiz.getRanking(roomId);
-                setRanking(res.data);
-            } catch (e) {
-                // SSE는 왔는데 랭킹 API가 실패하면 테스트 랭킹 보여줌
-                setRanking({ "A": 99, "B": 88 });
+        // 다음 팀 → 카테고리 선택으로 돌아감
+        eventSource.addEventListener('QUIZ_NEXT_TEAM', (e: any) => {
+            const data = JSON.parse(e.data);
+            if (data.allScores) {
+                setGameState(prev => ({ ...prev, score: data.allScores, currentTeam: data.nextTeam }));
             }
+            setPhase('WAITING');
+        });
+
+        // 최종 랭킹
+        eventSource.addEventListener('QUIZ_FINAL_RANKING', (e: any) => {
+            const data = JSON.parse(e.data);
+            if (data.ranking) {
+                const rankMap: Record<string, number> = {};
+                data.ranking.forEach((r: any) => { rankMap[r.team] = r.score; });
+                setRanking(rankMap);
+            }
+            setPhase('FINISHED');
         });
 
         eventSource.addEventListener('QUIZ_STATE_UPDATE', (e: any) => {

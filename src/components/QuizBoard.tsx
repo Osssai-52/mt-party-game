@@ -67,7 +67,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, teamC
             <div className="w-full h-full flex flex-col items-center justify-between bg-white text-black p-6 relative overflow-hidden">
                 <div className="w-full flex justify-between items-center z-10">
                     <div className="bg-black text-white px-6 py-2 rounded-full font-bold text-xl">
-                        Team {gameState.currentTeam || '?'}
+                        {gameState.currentTeam || '?'}팀
                     </div>
                     <div className={`text-6xl font-mono font-black ${gameState.remainingSeconds <= 10 ? 'text-red-600 animate-pulse' : 'text-blue-600'}`}>
                         {gameState.remainingSeconds}
@@ -118,7 +118,7 @@ export default function QuizBoard({ phase, gameState, categories, ranking, teamC
                 <div className="bg-gray-800 p-8 rounded-3xl w-full max-w-2xl mb-8">
                     {Object.entries(gameState.score).map(([team, score]) => (
                         <div key={team} className="flex justify-between text-4xl font-bold mb-4 last:mb-0 border-b border-gray-700 pb-2 last:border-0">
-                            <span>Team {team}</span>
+                            <span>{team}팀</span>
                             <span className="text-yellow-400">{score}점</span>
                         </div>
                     ))}

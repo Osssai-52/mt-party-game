@@ -74,6 +74,9 @@ export default function PlayerRoomPage() {
 
     // --- [몸으로 말해요 State] ---
     const [quizPhase, setQuizPhase] = useState<string>('WAITING');
+    const [quizCurrentWord, setQuizCurrentWord] = useState<string | null>(null);
+    const [quizCurrentTeam, setQuizCurrentTeam] = useState<string | null>(null);
+    const [quizRemainingSeconds, setQuizRemainingSeconds] = useState<number>(60);
 
     // --- [라이어게임 State] ---
     const [liarPhase, setLiarPhase] = useState<LiarPhase>('LOBBY');
@@ -252,19 +255,56 @@ export default function PlayerRoomPage() {
         });
 
         // ---------------- [몸으로 말해요 이벤트] ----------------
+        eventSource.addEventListener('QUIZ_INIT', () => {
+            setPhase('QUIZ_GAME');
+            setQuizPhase('WAITING');
+        });
+
+        eventSource.addEventListener('QUIZ_ROUND_START', (e) => {
+            const data = JSON.parse(e.data);
+            setPhase('QUIZ_GAME');
+            setQuizPhase('PLAYING');
+            setQuizCurrentWord(data.currentWord);
+            setQuizCurrentTeam(data.team);
+            setQuizRemainingSeconds(data.timer);
+        });
+
+        eventSource.addEventListener('QUIZ_TIMER', (e) => {
+            const data = JSON.parse(e.data);
+            setQuizRemainingSeconds(data.remaining);
+            if (data.currentWord) setQuizCurrentWord(data.currentWord);
+        });
+
+        eventSource.addEventListener('QUIZ_CORRECT', (e) => {
+            const data = JSON.parse(e.data);
+            setQuizCurrentWord(data.currentWord);
+        });
+
+        eventSource.addEventListener('QUIZ_PASS', (e) => {
+            const data = JSON.parse(e.data);
+            setQuizCurrentWord(data.currentWord);
+        });
+
+        eventSource.addEventListener('QUIZ_ROUND_END', () => {
+            setQuizPhase('ROUND_END');
+            setQuizCurrentWord(null);
+        });
+
+        eventSource.addEventListener('QUIZ_NEXT_TEAM', (e) => {
+            const data = JSON.parse(e.data);
+            setQuizPhase('WAITING');
+            setQuizCurrentTeam(data.nextTeam);
+            setQuizCurrentWord(null);
+        });
+
+        eventSource.addEventListener('QUIZ_FINAL_RANKING', () => {
+            setQuizPhase('FINISHED');
+        });
+
         eventSource.addEventListener('QUIZ_STATE_UPDATE', (e) => {
             const data = JSON.parse(e.data);
-            setPhase('QUIZ_GAME'); // 메인 페이즈 전환
-            if (data.phase) setQuizPhase(data.phase); // WAITING, PLAYING 등 서브 페이즈
-        });
-
-        eventSource.addEventListener('QUIZ_NEXT', () => {
             setPhase('QUIZ_GAME');
-            setQuizPhase('PLAYING'); // 문제가 나오면 플레이 상태로
-        });
-
-        eventSource.addEventListener('QUIZ_FINISHED', () => {
-            setQuizPhase('FINISHED');
+            if (data.phase) setQuizPhase(data.phase);
         });
 
         return () => {
@@ -526,9 +566,12 @@ export default function PlayerRoomPage() {
     if (phase === 'QUIZ_GAME') {
         return (
             <div className="min-h-screen bg-black text-white">
-                <QuizController 
+                <QuizController
                     roomId={roomId}
                     phase={quizPhase}
+                    currentWord={quizCurrentWord}
+                    currentTeam={quizCurrentTeam}
+                    remainingSeconds={quizRemainingSeconds}
                 />
             </div>
         );
