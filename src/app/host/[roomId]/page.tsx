@@ -495,7 +495,7 @@ export default function LobbyPage() {
                     />
                 )}
 
-                {gameType === 'SPEED_QUIZ' && (phase === 'TEAM_SETUP' || gamePhase === 'QUIZ_GAME') && (
+                {gameType === 'SPEED_QUIZ' && (quiz.phase === 'TEAM_SETUP' || commonPhase === 'QUIZ_GAME') && (
                     <QuizBoard
                         phase={quiz.phase}
                         gameState={quiz.gameState}
@@ -507,7 +507,7 @@ export default function LobbyPage() {
                         onStartRound={quiz.actions.startRound}
                         onNextTeam={quiz.actions.handleNextTeam}
                         onEndGame={quiz.actions.handleEndGame}
-                        onCorrect={() => gameApi.quiz.correct(roomId).catch(() => { })}
+                        onCorrect={() => gameApi.quiz.correct(roomId).catch((e: any) => { console.error('정답 처리 실패:', e); alert('정답 처리 실패: ' + (e.response?.data?.message || e.message)); })}
                     />
                 )}
 

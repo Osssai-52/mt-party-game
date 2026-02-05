@@ -97,20 +97,11 @@ export default function QuizBoard({ phase, gameState, categories, ranking, teamC
                         {onCorrect && (
                             <button
                                 onClick={onCorrect}
-                                className="px-10 py-4 bg-green-500 text-white rounded-2xl text-3xl font-black shadow-lg hover:bg-green-400 active:scale-95 transition"
-                            >
-                                ⭕ 정답
-                            </button>
-                        )}
-                        {onCorrect && (
-                            <button
-                                onClick={onCorrect}
                                 className="px-20 py-8 bg-green-500 text-white rounded-3xl text-5xl font-black shadow-lg hover:bg-green-400 active:scale-95 transition"
                             >
                                 ⭕ 정답
                             </button>
                         )}
-                        {/* ❌ PASS 버튼 제거됨 */}
                     </div>
                 </div>
             </div>

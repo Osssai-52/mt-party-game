@@ -3,7 +3,7 @@ import gameApi from '../services/gameApi';
 import { QuizCategory, QuizPhase, QuizState } from '../types/quiz';
 
 export default function useQuizHost(roomId: string, eventSource: EventSource | null) {
-    const [phase, setPhase] = useState<QuizPhase | 'TEAM_SETUP'>('TEAM_SETUP');
+    const [phase, setPhase] = useState<QuizPhase>('TEAM_SETUP');
     const [teamCount, setTeamCount] = useState(2);
 
     const handleTeamCountChange = (delta: number) => {
@@ -99,7 +99,7 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
     // 🌐 [REAL LOGIC] 실제 API 호출 (실패 시 위 테스트 로직 실행)
     // ============================================================
 
-    // 1. 초기화
+    // 1. 초기화 (카테고리만 불러오고 TEAM_SETUP 유지)
     const initGame = async () => {
         try {
             const catRes = await gameApi.quiz.getCategories();
@@ -109,8 +109,8 @@ export default function useQuizHost(roomId: string, eventSource: EventSource | n
                 name: c.name
             }));
             setCategories(mapped);
-            await gameApi.quiz.init(roomId);
-            setPhase('WAITING');
+            // quiz.init은 handleConfirmTeam에서 팀 설정 후 호출
+            setPhase('TEAM_SETUP');
         } catch (e) {
             runTestInit();
         }

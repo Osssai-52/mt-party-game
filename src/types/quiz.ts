@@ -1,4 +1,4 @@
-export type QuizPhase = 'WAITING' | 'PLAYING' | 'ROUND_END' | 'FINISHED';
+export type QuizPhase = 'TEAM_SETUP' | 'WAITING' | 'PLAYING' | 'ROUND_END' | 'FINISHED';
 
 export interface QuizCategory {
     id: number;

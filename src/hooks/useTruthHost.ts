@@ -164,7 +164,17 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
         eventSource.addEventListener('TRUTH_RESULT', (e: any) => {
             const data = JSON.parse(e.data);
             if (data.phase) setPhase(data.phase);
-            setResult(data.result);
+            // 백엔드 LieDetectionResult → 프론트 FaceAnalysisData 변환
+            if (data.result) {
+                setResult({
+                    isLie: data.result.isLie,
+                    stressLevel: data.result.confidence ?? data.result.details?.overallStressLevel ?? 0,
+                    eyeBlinkRate: data.result.details?.eyeBlinkScore ?? 0,
+                    eyeMovement: data.result.details?.eyeMovementScore ?? 0,
+                    facialTremor: data.result.details?.facialTremorScore ?? 0,
+                    nostrilMovement: data.result.details?.nostrilScore ?? 0,
+                });
+            }
         });
 
         eventSource.addEventListener('TRUTH_NEXT_ROUND', (e: any) => {
