@@ -116,9 +116,11 @@ export default function useJuruHost(
     const handleStartGame = async () => {
         try {
             const res = await gameApi.marble.init(roomId);
-            setFinalPenalties((res as any).penalties);
+            // board 배열에서 text를 추출하여 finalPenalties에 저장
+            const board = (res as any).data?.board || [];
+            setFinalPenalties(board.map((cell: any) => ({ text: cell.text })));
             // 로비에 있던 플레이어들을 게임 플레이어로 초기화
-            setPlayers(lobbyPlayers); 
+            setPlayers(lobbyPlayers);
             await changePhaseOnly('GAME');
         } catch (e) { console.error(e); }
     };
@@ -225,8 +227,25 @@ export default function useJuruHost(
                     setCurrentTurnDeviceId(data.turnOrder[0]);
                 }
             }
+
+            // 모드 선택 시 board가 포함되어 있으면 설정
+            if (data.board) {
+                setFinalPenalties(data.board.map((cell: any) => ({ text: cell.text })));
+            }
         };
         eventSource.addEventListener('MARBLE_MODE_SELECTED', onModeSelected);
+
+        // 게임 초기화 완료 (board 데이터 수신)
+        const onMarbleInit = (e: MessageEvent) => {
+            const data = JSON.parse(e.data);
+            if (data.board) {
+                setFinalPenalties(data.board.map((cell: any) => ({ text: cell.text })));
+            }
+            if (data.mode) {
+                setGameMode(data.mode);
+            }
+        };
+        eventSource.addEventListener('MARBLE_INIT', onMarbleInit);
 
         // 수동 선택 모드 시작
         const onManualStart = () => {
@@ -248,6 +267,8 @@ export default function useJuruHost(
             eventSource.removeEventListener('TEAM_UPDATE', onTeamUpdate);
             eventSource.removeEventListener('PLAYER_TEAM_SELECTED', onTeamUpdate);
             eventSource.removeEventListener('TEAM_ASSIGNED', onTeamAssigned);
+            eventSource.removeEventListener('MARBLE_MODE_SELECTED', onModeSelected);
+            eventSource.removeEventListener('MARBLE_INIT', onMarbleInit);
             eventSource.removeEventListener('TEAM_MANUAL_START', onManualStart);
             eventSource.removeEventListener('MARBLE_PLAYER_VOTE_DONE', onPlayerVoteDone);
         };
