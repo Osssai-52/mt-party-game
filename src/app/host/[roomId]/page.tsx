@@ -495,7 +495,7 @@ export default function LobbyPage() {
                     />
                 )}
 
-                {gameType === 'SPEED_QUIZ' && (quiz.phase === 'TEAM_SETUP' || commonPhase === 'QUIZ_GAME') && (
+                {gameType === 'SPEED_QUIZ' && commonPhase === 'QUIZ_GAME' && (
                     <QuizBoard
                         phase={quiz.phase}
                         gameState={quiz.gameState}
