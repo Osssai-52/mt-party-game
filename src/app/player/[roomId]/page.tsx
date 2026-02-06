@@ -404,6 +404,27 @@ export default function PlayerRoomPage() {
         );
     }
 
+    // [신규] 게임 모드 선택 대기
+    if (phase === 'MODE_SELECT') {
+        return (
+            <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
+                <div className="text-6xl mb-6 animate-pulse">⏳</div>
+                <h1 className="text-3xl font-bold">게임 모드 선택 중...</h1>
+                <p className="text-gray-400 mt-4">호스트가 모드를 정하고 있습니다.</p>
+                <div className="mt-8 flex gap-4">
+                    <div className="bg-blue-600/20 border border-blue-500 rounded-xl p-4">
+                        <div className="text-3xl mb-2">👥</div>
+                        <div className="text-sm text-gray-300">팀전</div>
+                    </div>
+                    <div className="bg-orange-600/20 border border-orange-500 rounded-xl p-4">
+                        <div className="text-3xl mb-2">🏃</div>
+                        <div className="text-sm text-gray-300">개인전</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (phase === 'TEAM') {
         // 1) 대기 중 (호스트가 팀 방식을 결정하는 중)
         if (teamSubPhase === 'WAITING') {

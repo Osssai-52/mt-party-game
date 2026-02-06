@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TruthPhase, TruthAnswerer, TruthQuestion, FaceAnalysisData } from '../types/truth';
 import gameApi from '../services/gameApi';
+import { getErrorMessage } from '../services/api';
 
 export default function useTruthHost(roomId: string, players: any[], eventSource: EventSource | null) {
     const [phase, setPhase] = useState<TruthPhase>('SELECT_ANSWERER');
@@ -25,7 +26,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             setPhase('SELECT_ANSWERER');
         } catch (e: any) {
             console.error(e);
-            alert(`게임 초기화 실패: ${e.response?.data?.message || e.message}`);
+            alert(`게임 초기화 실패: ${getErrorMessage(e)}`);
         }
     };
 
@@ -39,7 +40,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             }
         } catch (e: any) {
             console.error(e);
-            alert(`답변자 선정 실패: ${e.response?.data?.message || e.message}`);
+            alert(`답변자 선정 실패: ${getErrorMessage(e)}`);
         }
     };
 
@@ -53,7 +54,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             }
         } catch (e: any) {
             console.error(e);
-            alert(`답변자 선정 실패: ${e.response?.data?.message || e.message}`);
+            alert(`답변자 선정 실패: ${getErrorMessage(e)}`);
         }
     };
 
@@ -63,7 +64,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             setPhase('SELECT_QUESTION');
         } catch (e: any) {
             console.error(e);
-            alert(`질문 마감 실패: ${e.response?.data?.message || e.message}`);
+            alert(`질문 마감 실패: ${getErrorMessage(e)}`);
         }
     };
 
@@ -81,7 +82,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             await gameApi.truth.finishQuestionVote(roomId);
         } catch (e: any) {
             console.error(e);
-            alert(`투표 마감 실패: ${e.response?.data?.message || e.message}`);
+            alert(`투표 마감 실패: ${getErrorMessage(e)}`);
         }
     };
 
@@ -90,7 +91,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             await gameApi.truth.finishAnswering(roomId);
         } catch (e: any) {
             console.error(e);
-            alert(`답변 종료 실패: ${e.response?.data?.message || e.message}`);
+            alert(`답변 종료 실패: ${getErrorMessage(e)}`);
         }
     };
 
@@ -106,7 +107,7 @@ export default function useTruthHost(roomId: string, players: any[], eventSource
             setTotalVoters(0);
         } catch (e: any) {
             console.error(e);
-            alert(`다음 라운드 실패: ${e.response?.data?.message || e.message}`);
+            alert(`다음 라운드 실패: ${getErrorMessage(e)}`);
         }
     };
 

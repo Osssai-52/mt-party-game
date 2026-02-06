@@ -26,17 +26,17 @@ export const gameApi = {
         submitPenalty: (roomId: string, text: string, deviceId: string) =>
             api.post('/games/marble/penalty/submit', { roomId, text, deviceId }),
 
-        getPenaltyStatus: (roomId: string) => 
+        getPenaltyStatus: (roomId: string) =>
             api.get(`/games/marble/penalty/status/${roomId}`),
 
         // [Phase 2] 벌칙 투표
-        getVotePenalties: (roomId: string) => 
+        getVotePenalties: (roomId: string) =>
             api.get(`/games/marble/vote/penalties/${roomId}`),
 
         vote: (roomId: string, deviceId: string, penaltyId: string | number) =>
             api.post('/games/marble/vote', { roomId, deviceId, penaltyId }),
 
-        getVoteStatus: (roomId: string) => 
+        getVoteStatus: (roomId: string) =>
             api.get(`/games/marble/vote/status/${roomId}`),
 
         voteDone: (roomId: string, deviceId: string) =>
@@ -45,8 +45,12 @@ export const gameApi = {
         finishVote: (roomId: string) =>
             api.post('/games/marble/vote/finish', { roomId }),
 
+        // [Phase 2.5] 모드 선택
+        selectMode: (roomId: string, mode: 'TEAM' | 'SOLO') =>
+            api.post('/games/marble/mode/select', { roomId, mode }),
+
         // [Phase 3] 게임판 생성
-        init: (roomId: string) => 
+        init: (roomId: string) =>
             api.post('/games/marble/init', { roomId }),
 
         // [Phase 4] 게임 진행

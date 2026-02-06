@@ -29,6 +29,8 @@ export default function useJuruHost(
     const [teamCount, setTeamCount] = useState(2);
     const [teamResult, setTeamResult] = useState<Record<string, GamePlayer[]> | null>(null);
     const [currentTurnDeviceId, setCurrentTurnDeviceId] = useState<string | null>(null);
+    const [gameMode, setGameMode] = useState<'TEAM' | 'SOLO' | null>(null);
+    const [soloTurnOrder, setSoloTurnOrder] = useState<GamePlayer[]>([]);
 
     // 팀 배정 방식 선택 상태
     const [assignMethod, setAssignMethod] = useState<'RANDOM' | 'MANUAL'>('RANDOM');
@@ -44,13 +46,38 @@ export default function useJuruHost(
         try { await gameApi.common.changePhase(roomId, newPhase as any); } catch (e) { console.error(e); }
     };
 
-    // 1. 투표 종료 및 팀 빌딩으로 이동
+    // 1. 투표 종료 및 모드 선택으로 이동
     const handleFinishVote = async () => {
-        if (!confirm("투표를 종료하고 팀 설정으로 넘어갈까요?")) return;
+        if (!confirm("투표를 종료하고 게임 모드 선택으로 넘어갈까요?")) return;
         try {
             await gameApi.marble.finishVote(roomId);
-            await changePhaseOnly('TEAM');
+            await changePhaseOnly('MODE_SELECT');
         } catch (e) { console.error(e); }
+    };
+
+    // 1.5 게임 모드 선택 (팀전 / 개인전)
+    const handleSelectMode = async (mode: 'TEAM' | 'SOLO') => {
+        try {
+            const res = await gameApi.marble.selectMode(roomId, mode);
+            const data = (res as any)?.data;
+            setGameMode(mode);
+
+            if (mode === 'SOLO' && data?.turnOrder) {
+                // deviceId 배열을 GamePlayer 배열로 변환
+                const orderedPlayers = data.turnOrder
+                    .map((deviceId: string) => lobbyPlayers.find(p => p.deviceId === deviceId))
+                    .filter(Boolean);
+                setSoloTurnOrder(orderedPlayers);
+                setCurrentTurnDeviceId(data.turnOrder[0]);
+            }
+
+            if (mode === 'TEAM') {
+                await changePhaseOnly('TEAM');
+            } else {
+                // SOLO 모드는 바로 게임 시작
+                await handleStartGame();
+            }
+        } catch (e) { console.error("모드 선택 실패", e); }
     };
 
     // ============================================================
@@ -115,50 +142,48 @@ export default function useJuruHost(
 
         // 🎲 주사위 굴림 & 이동
         const onDiceRolled = (e: MessageEvent) => {
-            const data = JSON.parse(e.data); 
-            
+            const data = JSON.parse(e.data);
+
             setShowDice(true);
             setIsRolling(true);
 
+            // 다음 턴의 첫 번째 플레이어로 currentTurnDeviceId 업데이트
+            if (data.nextTurnDeviceIds && data.nextTurnDeviceIds.length > 0) {
+                setCurrentTurnDeviceId(data.nextTurnDeviceIds[0]);
+            }
+
             setTimeout(() => {
                 setIsRolling(false);
-                setDiceValue(data.value);
-                
+                setDiceValue(data.diceValue); // ✅ 수정: data.value → data.diceValue
+
                 setTimeout(() => {
                     setShowDice(false);
                     setPlayers(prevPlayers => {
-                        const roller = prevPlayers.find(p => p.deviceId === data.deviceId);
-                        if (!roller) return prevPlayers;
+                        // ✅ 수정: 팀 기반으로 이동 (백엔드에서 teamDeviceIds 제공)
+                        const idsToMove = data.teamDeviceIds || [data.deviceId];
+                        const newPos = data.newPosition; // ✅ 백엔드에서 계산한 위치 사용
 
-                        let idsToMove: string[] = [data.deviceId];
-                        
-                        if (teamResult) {
-                            for (const members of Object.values(teamResult)) {
-                                if (members.some(m => m.deviceId === data.deviceId)) {
-                                    idsToMove = members.map(m => m.deviceId);
-                                    break;
-                                }
-                            }
-                        }
-
-                        let nextPos = roller.currentPosition + data.value;
-                        if (nextPos >= 28) nextPos -= 28;
-
+                        // 도착한 칸의 벌칙 텍스트 (백엔드에서 cell 정보 제공)
                         let penaltyText = "";
-                        if (nextPos === 0) penaltyText = "출발점 (휴식)";
-                        else if (nextPos === 7) penaltyText = "🍺 의리주 채우기!";
-                        else if (nextPos === 21) penaltyText = "🤮 의리주 마시기!";
-                        else {
-                            if (finalPenalties.length > 0) penaltyText = finalPenalties[nextPos % finalPenalties.length].text;
-                            else penaltyText = `임시 벌칙 ${nextPos}`;
+                        if (data.cell) {
+                            penaltyText = data.cell.text;
+                        } else if (newPos === 0) {
+                            penaltyText = "출발점 (휴식)";
+                        } else if (newPos === 7) {
+                            penaltyText = "🍺 의리주 채우기!";
+                        } else if (newPos === 21) {
+                            penaltyText = "🤮 의리주 마시기!";
+                        } else {
+                            penaltyText = `칸 ${newPos}`;
                         }
 
                         setActivePenaltyText(penaltyText);
                         setTimeout(() => setActivePenaltyText(null), 3000);
 
+                        // 팀원 전체의 위치 업데이트
                         return prevPlayers.map(p => {
                             if (idsToMove.includes(p.deviceId)) {
-                                return { ...p, currentPosition: nextPos };
+                                return { ...p, currentPosition: newPos };
                             }
                             return p;
                         });
@@ -185,6 +210,23 @@ export default function useJuruHost(
             if (data.teams) setTeamResult(data.teams);
         };
         eventSource.addEventListener('TEAM_ASSIGNED', onTeamAssigned);
+
+        // 게임 모드 선택 완료
+        const onModeSelected = (e: MessageEvent) => {
+            const data = JSON.parse(e.data);
+            setGameMode(data.mode);
+
+            if (data.mode === 'SOLO' && data.turnOrder) {
+                const orderedPlayers = data.turnOrder
+                    .map((deviceId: string) => lobbyPlayers.find(p => p.deviceId === deviceId))
+                    .filter(Boolean);
+                setSoloTurnOrder(orderedPlayers);
+                if (data.turnOrder.length > 0) {
+                    setCurrentTurnDeviceId(data.turnOrder[0]);
+                }
+            }
+        };
+        eventSource.addEventListener('MARBLE_MODE_SELECTED', onModeSelected);
 
         // 수동 선택 모드 시작
         const onManualStart = () => {
@@ -332,18 +374,20 @@ export default function useJuruHost(
     };
 
     // ✨ [핵심] 보드판에 넘겨줄 '대표 말' 계산
-    const boardPieces = teamResult 
-        ? Object.entries(teamResult).map(([teamName, members]) => {
-            const representative = players.find(p => p.deviceId === members[0].deviceId);
-            if (!representative) return null;
-            return { ...representative, nickname: teamName };
-        }).filter(p => p !== null) as GamePlayer[]
-        : players;
+    const boardPieces = gameMode === 'SOLO'
+        ? players  // 개인전: 모든 플레이어 표시
+        : teamResult
+            ? Object.entries(teamResult).map(([teamName, members]) => {
+                const representative = players.find(p => p.deviceId === members[0].deviceId);
+                if (!representative) return null;
+                return { ...representative, nickname: teamName };
+            }).filter(p => p !== null) as GamePlayer[]
+            : players;
 
     return {
         // State
-        players, 
-        setPlayers, 
+        players,
+        setPlayers,
         penaltyCount,
         expectedPenaltyCount,
         voteDoneCount,
@@ -355,6 +399,8 @@ export default function useJuruHost(
         activePenaltyText,
         showDice,
         diceValue,
+        gameMode,
+        soloTurnOrder,
         isRolling,
         boardPieces,
         
@@ -364,7 +410,8 @@ export default function useJuruHost(
 
         // Handlers
         handleFinishVote,
-        
+        handleSelectMode,
+
         // 팀 배정 방식 핸들러
         handleDivideRandom,
         handleManualMode,

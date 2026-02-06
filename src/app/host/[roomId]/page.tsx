@@ -363,6 +363,46 @@ export default function LobbyPage() {
                             </div>
                         )}
 
+                        {/* [신규] 게임 모드 선택 (팀전 / 개인전) */}
+                        {commonPhase === 'MODE_SELECT' && (
+                            <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
+                                <h2 className="text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                                    게임 모드 선택
+                                </h2>
+                                <p className="text-gray-400 text-lg">
+                                    팀으로 협동할까요, 개인전으로 경쟁할까요?
+                                </p>
+
+                                <div className="grid grid-cols-2 gap-6 w-full max-w-3xl">
+                                    {/* 팀전 카드 */}
+                                    <button
+                                        onClick={() => juru.handleSelectMode('TEAM')}
+                                        className="relative p-10 rounded-3xl border-4 border-blue-500 bg-gradient-to-br from-blue-600 to-purple-600 hover:scale-105 transition-all shadow-2xl group"
+                                    >
+                                        <div className="text-6xl mb-4">👥</div>
+                                        <h3 className="text-3xl font-black mb-2">팀전</h3>
+                                        <p className="text-sm text-gray-200">
+                                            팀원과 함께 움직이며<br />협동하는 모드
+                                        </p>
+                                        <div className="absolute inset-0 bg-blue-400/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    </button>
+
+                                    {/* 개인전 카드 */}
+                                    <button
+                                        onClick={() => juru.handleSelectMode('SOLO')}
+                                        className="relative p-10 rounded-3xl border-4 border-orange-500 bg-gradient-to-br from-orange-600 to-red-600 hover:scale-105 transition-all shadow-2xl group"
+                                    >
+                                        <div className="text-6xl mb-4">🏃</div>
+                                        <h3 className="text-3xl font-black mb-2">개인전</h3>
+                                        <p className="text-sm text-gray-200">
+                                            각자 독립적으로 움직이며<br />경쟁하는 모드
+                                        </p>
+                                        <div className="absolute inset-0 bg-orange-400/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {commonPhase === 'TEAM' && (
                             <div className="flex flex-col items-center w-full max-w-5xl gap-8">
                                 <h2 className="text-4xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">
@@ -433,25 +473,61 @@ export default function LobbyPage() {
                                     <JuruBoard players={juru.boardPieces} penalties={juru.finalPenalties} />
                                 </div>
                                 <div className="w-80 h-full flex flex-col gap-4 overflow-y-auto pr-2 pb-4">
-                                    <h3 className="text-xl font-bold text-gray-400 sticky top-0 bg-black py-2">TEAMS</h3>
-                                    {juru.teamResult && Object.entries(juru.teamResult).map(([teamName, members], idx) => {
-                                        // @ts-ignore
-                                        const isTeamTurn = members.some(m => m.deviceId === juru.currentTurnDeviceId);
-                                        return (
-                                            <motion.div key={teamName} animate={isTeamTurn ? { scale: 1.05 } : { scale: 1 }} className={`relative p-5 rounded-2xl border-2 transition-all duration-300 ${isTeamTurn ? `bg-gray-800 ${currentTheme.border}` : 'bg-gray-900 border-gray-700 opacity-80'}`}>
-                                                <h4 className={`font-bold text-lg mb-2 ${isTeamTurn ? currentTheme.text : 'text-white'}`}>{teamName}</h4>
-                                                <div className="space-y-2">
-                                                    {/* @ts-ignore */}
-                                                    {members.map((m: any) => (
-                                                        <div key={m.deviceId} className="flex items-center gap-2">
-                                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: m.color || '#fff' }} />
-                                                            <span className={`text-sm ${m.deviceId === juru.currentTurnDeviceId ? 'text-white font-bold underline decoration-yellow-400' : 'text-gray-400'}`}>{m.nickname}</span>
+                                    {/* 팀전 모드: 팀 목록 */}
+                                    {juru.gameMode === 'TEAM' && (
+                                        <>
+                                            <h3 className="text-xl font-bold text-gray-400 sticky top-0 bg-black py-2">TEAMS</h3>
+                                            {juru.teamResult && Object.entries(juru.teamResult).map(([teamName, members], idx) => {
+                                                // @ts-ignore
+                                                const isTeamTurn = members.some(m => m.deviceId === juru.currentTurnDeviceId);
+                                                return (
+                                                    <motion.div key={teamName} animate={isTeamTurn ? { scale: 1.05 } : { scale: 1 }} className={`relative p-5 rounded-2xl border-2 transition-all duration-300 ${isTeamTurn ? `bg-gray-800 ${currentTheme.border}` : 'bg-gray-900 border-gray-700 opacity-80'}`}>
+                                                        <h4 className={`font-bold text-lg mb-2 ${isTeamTurn ? currentTheme.text : 'text-white'}`}>{teamName}</h4>
+                                                        <div className="space-y-2">
+                                                            {/* @ts-ignore */}
+                                                            {members.map((m: any) => (
+                                                                <div key={m.deviceId} className="flex items-center gap-2">
+                                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: m.color || '#fff' }} />
+                                                                    <span className={`text-sm ${m.deviceId === juru.currentTurnDeviceId ? 'text-white font-bold underline decoration-yellow-400' : 'text-gray-400'}`}>{m.nickname}</span>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </>
+                                    )}
+
+                                    {/* 개인전 모드: 플레이어 순서 */}
+                                    {juru.gameMode === 'SOLO' && (
+                                        <>
+                                            <h3 className="text-xl font-bold text-gray-400 sticky top-0 bg-black py-2">TURN ORDER</h3>
+                                            {juru.soloTurnOrder.map((player, index) => {
+                                                const isMyTurn = player.deviceId === juru.currentTurnDeviceId;
+                                                return (
+                                                    <motion.div
+                                                        key={player.deviceId}
+                                                        animate={isMyTurn ? { scale: 1.05 } : { scale: 1 }}
+                                                        className={`p-4 rounded-xl border-2 transition-all ${isMyTurn ? `bg-yellow-500/20 ${currentTheme.border}` : 'bg-gray-900 border-gray-700'}`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-gray-500 font-mono font-bold text-lg">#{index + 1}</span>
+                                                            <div
+                                                                className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg"
+                                                                style={{ backgroundColor: player.color }}
+                                                            >
+                                                                {player.nickname[0]}
+                                                            </div>
+                                                            <span className={`font-bold text-lg ${isMyTurn ? currentTheme.text : 'text-white'}`}>
+                                                                {player.nickname}
+                                                            </span>
+                                                            {isMyTurn && <span className="ml-auto text-3xl">👈</span>}
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}
