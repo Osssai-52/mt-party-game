@@ -132,6 +132,24 @@ export default function PlayerRoomPage() {
             setIsRolling(false);
         });
 
+        // 게임 모드 선택 완료 시 첫 턴 정보 수신
+        eventSource.addEventListener('MARBLE_MODE_SELECTED', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.turnOrder && data.turnOrder.length > 0) {
+                setCurrentTurnDeviceId(data.turnOrder[0]);
+            }
+        });
+
+        // 게임 초기화 완료 시 첫 턴 정보 수신
+        eventSource.addEventListener('MARBLE_INIT', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.turnOrder && data.turnOrder.length > 0) {
+                setCurrentTurnDeviceId(data.turnOrder[0]);
+            } else if (data.currentTurnDeviceId) {
+                setCurrentTurnDeviceId(data.currentTurnDeviceId);
+            }
+        });
+
         // ---------------- [팀짜기 이벤트] ----------------
         eventSource.addEventListener('TEAM_ASSIGNED', (e) => {
             const data = JSON.parse(e.data);

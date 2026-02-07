@@ -161,8 +161,16 @@ export default function useJuruHost(
                 setTimeout(() => {
                     setShowDice(false);
                     setPlayers(prevPlayers => {
-                        // ✅ 수정: 팀 기반으로 이동 (백엔드에서 teamDeviceIds 제공)
-                        const idsToMove = data.teamDeviceIds || [data.deviceId];
+                        // ✅ 수정: 개인전이면 모든 플레이어 이동, 팀전이면 팀원만 이동
+                        let idsToMove: string[];
+                        if (gameMode === 'SOLO') {
+                            // 개인전: 모든 플레이어가 함께 이동
+                            idsToMove = prevPlayers.map(p => p.deviceId);
+                        } else {
+                            // 팀전: 해당 팀원만 이동
+                            idsToMove = data.teamDeviceIds || [data.deviceId];
+                        }
+
                         const newPos = data.newPosition; // ✅ 백엔드에서 계산한 위치 사용
 
                         // 도착한 칸의 벌칙 텍스트 (백엔드에서 cell 정보 제공)
@@ -182,7 +190,7 @@ export default function useJuruHost(
                         setActivePenaltyText(penaltyText);
                         setTimeout(() => setActivePenaltyText(null), 3000);
 
-                        // 팀원 전체의 위치 업데이트
+                        // 해당 플레이어들의 위치 업데이트
                         return prevPlayers.map(p => {
                             if (idsToMove.includes(p.deviceId)) {
                                 return { ...p, currentPosition: newPos };
@@ -272,7 +280,7 @@ export default function useJuruHost(
             eventSource.removeEventListener('TEAM_MANUAL_START', onManualStart);
             eventSource.removeEventListener('MARBLE_PLAYER_VOTE_DONE', onPlayerVoteDone);
         };
-    }, [eventSource, finalPenalties, teamResult]); 
+    }, [eventSource, finalPenalties, teamResult, gameMode]); 
 
     
     // ============================================================
@@ -337,25 +345,30 @@ export default function useJuruHost(
 
     const handleTestDice = () => {
         if (isRolling) return;
-        const testValue = Math.floor(Math.random() * 6) + 1; 
+        const testValue = Math.floor(Math.random() * 6) + 1;
         const targetDeviceId = currentTurnDeviceId || 'test_device_0'; // 테스트용 ID로 수정
         const mockEventData = { value: testValue, deviceId: targetDeviceId };
-        
+
         setShowDice(true);
         setIsRolling(true);
 
         setTimeout(() => {
             setIsRolling(false);
             setDiceValue(mockEventData.value);
-            
+
             setTimeout(() => {
                 setShowDice(false);
                 setPlayers(prevPlayers => {
                     const roller = prevPlayers.find(p => p.deviceId === targetDeviceId);
                     if (!roller) return prevPlayers;
 
+                    // 개인전이면 모든 플레이어 이동, 팀전이면 팀원만 이동
                     let teamMemberIds: string[] = [targetDeviceId];
-                    if (teamResult) {
+                    if (gameMode === 'SOLO') {
+                        // 개인전: 모든 플레이어가 함께 이동
+                        teamMemberIds = prevPlayers.map(p => p.deviceId);
+                    } else if (teamResult) {
+                        // 팀전: 해당 팀원만 이동
                         for (const members of Object.values(teamResult)) {
                             if (members.some(m => m.deviceId === targetDeviceId)) {
                                 teamMemberIds = members.map(m => m.deviceId);
@@ -396,7 +409,9 @@ export default function useJuruHost(
 
     // ✨ [핵심] 보드판에 넘겨줄 '대표 말' 계산
     const boardPieces = gameMode === 'SOLO'
-        ? players  // 개인전: 모든 플레이어 표시
+        ? players.length > 0
+            ? [{ ...players[0], nickname: '공통 말' }]  // 개인전: 하나의 공통 말만 표시
+            : []
         : teamResult
             ? Object.entries(teamResult).map(([teamName, members]) => {
                 const representative = players.find(p => p.deviceId === members[0].deviceId);
