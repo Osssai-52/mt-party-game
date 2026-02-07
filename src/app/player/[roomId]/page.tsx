@@ -123,6 +123,10 @@ export default function PlayerRoomPage() {
                 setMyTeammates([]);
                 setSelectedTeam(null);
             }
+            // 게임 페이즈로 전환 시 현재 턴 정보 확인
+            if (data.phase === 'GAME' && data.currentTurnDeviceId) {
+                setCurrentTurnDeviceId(data.currentTurnDeviceId);
+            }
         });
 
         // ---------------- [주루마블 이벤트] ----------------
