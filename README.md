@@ -10,7 +10,7 @@
 
 ---
 
-## Frontend Repository
+## Backend Repository
 [https://github.com/ujinchoi03-star/recreation](https://github.com/ujinchoi03-star/recreation)
 
 ---
